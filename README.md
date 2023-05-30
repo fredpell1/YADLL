@@ -1,2 +1,2 @@
 # YADLL
-Yet Another Deep Learning Library
+Building my own deep learning library to get a deeper understanding.
