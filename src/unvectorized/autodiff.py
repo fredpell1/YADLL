@@ -46,7 +46,7 @@ class Scalar:
         output = Scalar(self.data ** power, (self,))
         def _backward():
             self.grad += power * self.data ** (power - 1) * output.grad
-        output.grad = _backward
+        output._backward = _backward
         
         return output
     
@@ -61,7 +61,7 @@ class Scalar:
         output = Scalar(np.exp(self.data), (self,))
         def _backward():
             self.grad += np.exp(self.data) * output.grad
-        output.grad = _backward
+        output._backward = _backward
         
         return output
     
@@ -82,3 +82,12 @@ class Scalar:
             for parent in v.parent:
                 self.__build_topological_sort(parent, visited, topo_order)
             topo_order.append(v)
+
+
+    # activation functions
+
+    def relu(self):
+        output = Scalar(0 if self.data < 0 else self.data, (self,))
+        def _backward():
+            self.grad += (output.data > 0) * output.grad #gradient is passed only if output is positive, otherwise 0
+        output._backward = _backward
