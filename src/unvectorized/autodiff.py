@@ -11,6 +11,7 @@ class Scalar:
         return self * -1
     
     def __add__(self, other):
+        other = other if isinstance(other, Scalar) else Scalar(other)
         output = Scalar(self.data + other.data, (self, other))
 
         def _backward():
@@ -24,6 +25,7 @@ class Scalar:
         return self + other
     
     def __mul__(self, other):
+        other = other if isinstance(other, Scalar) else Scalar(other)        
         output = Scalar(self.data * other.data, (self,other))
 
         def _backward():
@@ -95,16 +97,16 @@ class Scalar:
     
 
     def sigmoid(self):
-        output = Scalar(1/(1 + self.exp(-self)), (self,))
+        output = Scalar(1/(1 + (-self).exp()), (self,))
         def _backward():
-            self.grad += output * (1 - output)
+            self.grad += output.data * (1 - output.data) * output.grad
         output._backward = _backward
         return output
     
     def tanh(self):
-        output = Scalar((self.exp(2*self) - 1) / (self.exp(2*self) + 1), (self,))
+        output = Scalar(((2*self).exp().data - 1) / ((2*self).exp().data + 1), (self,))
 
         def _backward():
-            self.grad += 1 - output**2
+            self.grad += (1 - output.data**2) * output.grad
         output._backward = _backward
         return output
