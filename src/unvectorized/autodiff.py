@@ -1,3 +1,4 @@
+import numpy as np
 class Scalar:
     
     def __init__(self, data, parent = ()) -> None:
@@ -6,6 +7,9 @@ class Scalar:
         self.parent = parent
         self._backward = lambda : None
 
+    def __neg__(self):
+        return self * -1
+    
     def __add__(self, other):
         output = Scalar(self.data + other.data, (self, other))
 
@@ -16,6 +20,9 @@ class Scalar:
 
         return output
     
+    def __radd__(self,other):
+        return self + other
+    
     def __mul__(self, other):
         output = Scalar(self.data * other.data, (self,other))
 
@@ -25,6 +32,15 @@ class Scalar:
         output._backward = _backward
         return output
     
+    def __rmul__(self,other):
+        return self * other
+    
+    def __sub__(self,other):
+        return self + (-other)
+    
+    def __rsub__(self,other):
+        return other + (-self)
+
     def __pow__(self, power):
         assert isinstance(power, (int,float))
         output = Scalar(self.data ** power, (self,))
@@ -33,3 +49,21 @@ class Scalar:
         output.grad = _backward
         
         return output
+    
+    def __truediv__(self,other):
+        return self * (other)**(-1)
+    
+    def __rtruediv__(self,other):
+        return other * self**(-1)
+    
+    
+    def exp(self):
+        output = Scalar(np.exp(self.data), (self,))
+        def _backward():
+            self.grad += np.exp(self.data) * output.grad
+        output.grad = _backward
+        
+        return output
+    
+    def __repr__(self) -> str:
+        return f"data: {self.data}, gradient: {self.grad}"
