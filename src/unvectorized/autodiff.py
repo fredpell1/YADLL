@@ -67,3 +67,18 @@ class Scalar:
     
     def __repr__(self) -> str:
         return f"data: {self.data}, gradient: {self.grad}"
+    
+    def backward(self):
+        topo_order = []
+        visited = set()
+        self.__build_topological_sort(self, visited, topo_order)
+        self.grad = 1
+        for v in reversed(topo_order):
+            v._backward()
+        
+    def __build_topological_sort(self, v, visited, topo_order):
+        if v not in visited:
+            visited.add(v)
+            for parent in v.parent:
+                self.__build_topological_sort(parent, visited, topo_order)
+            topo_order.append(v)
