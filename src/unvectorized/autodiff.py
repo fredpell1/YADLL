@@ -91,3 +91,20 @@ class Scalar:
         def _backward():
             self.grad += (output.data > 0) * output.grad #gradient is passed only if output is positive, otherwise 0
         output._backward = _backward
+        return output
+    
+
+    def sigmoid(self):
+        output = Scalar(1/(1 + self.exp(-self)), (self,))
+        def _backward():
+            self.grad += output * (1 - output)
+        output._backward = _backward
+        return output
+    
+    def tanh(self):
+        output = Scalar((self.exp(2*self) - 1) / (self.exp(2*self) + 1), (self,))
+
+        def _backward():
+            self.grad += 1 - output**2
+        output._backward = _backward
+        return output
