@@ -97,7 +97,7 @@ class Scalar:
     
 
     def sigmoid(self):
-        output = Scalar(1/(1 + (-self).exp()), (self,))
+        output = Scalar(1/(1 + (-self).exp().data), (self,))
         def _backward():
             self.grad += output.data * (1 - output.data) * output.grad
         output._backward = _backward
