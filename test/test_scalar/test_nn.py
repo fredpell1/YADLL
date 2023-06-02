@@ -5,14 +5,14 @@ import numpy as np
 def test_linear_neuron():
     x = [1,1]
     neuron = Neuron(2)
-    assert neuron(x).data == (np.sum(neuron.weights) +  neuron.bias).data
+    assert abs(neuron(x).data - (np.sum(neuron.weights) +  neuron.bias).data) < 0.000001
 
 def test_relu_neuron():
     x = [1,1]
     neuron = Neuron(2, 'relu')
     output = neuron(x).data
     expected_output = (np.sum(neuron.weights) +  neuron.bias).relu().data
-    assert output == expected_output
+    assert abs(output - expected_output) < 0.0000001
 
 def test_linear_layer_output_size():
     x = [1,1]
@@ -26,7 +26,7 @@ def test_linear_layer_activation_function():
     output = layer(x)[0].data
     neuron = layer.neurons[0]
     expected_output = (np.sum(neuron.weights) + neuron.bias).tanh().data
-    assert output == expected_output
+    assert abs(output - expected_output) < 0.0000001
 
 def test_sequential_output_size():
     x = [1,1]

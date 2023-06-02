@@ -29,7 +29,7 @@ class Neuron(Module):
     
     def __call__(self,x):
         assert len(x) == self.nin
-        out = Scalar(np.dot(self.weights, x).data + self.bias.data)
+        out = sum((wi*xi for wi,xi in zip(self.weights,x)), self.bias)
         if self.activation_func:
             if hasattr(Scalar, self.activation_func):
                 return getattr(out, self.activation_func)()
@@ -74,3 +74,5 @@ class Sequential(Module):
     def add_layer(self, layer):
         self.layers.append(layer)    
     
+    def __repr__(self) -> str:
+        return ",".join(self.parameters())
