@@ -1,5 +1,5 @@
 import pytest
-from src.unvectorized.autodiff import Scalar
+from src.scalar.autodiff import Scalar
 import numpy as np
 
 
