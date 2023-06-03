@@ -21,8 +21,8 @@ class Neuron(Module):
         super().__init__()
         self.nin = nin
         self.activation_func = activation_func
-        self.weights = [Scalar(np.random.randn()) for i in range(nin)]
-        self.bias = Scalar(np.random.randn())
+        self.weights = [Scalar(np.random.normal(loc=0,scale=1/nin)) for i in range(nin)] #Xavier initialization
+        self.bias = Scalar(0)
 
     def parameters(self):
         return self.weights + [self.bias]
