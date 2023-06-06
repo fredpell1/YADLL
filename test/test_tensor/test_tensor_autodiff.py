@@ -43,3 +43,22 @@ def test_rmatmul_backward_pass():
     f = e @ d
     f.backward(torch.ones_like(f))
     assert np.all(a.grad == d.grad.numpy()) and np.all(b.grad == e.grad.numpy())
+
+def test_pow_backward_pass():
+    a = Tensor(np.array([[1,2],[2,1]]), requires_grad=True)
+    b = a**2
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c**2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_div_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a/2
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c/2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+    

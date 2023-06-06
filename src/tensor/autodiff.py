@@ -88,6 +88,23 @@ class Tensor():
 
     def __rmatmul__(self,other: Tensor) -> Tensor:
         return other @ self
+    
+    def __pow__(self,power: Union[int,float]) -> Tensor:
+        assert isinstance(power, (int,float))
+        output = Tensor(
+            self.data ** power,
+            requires_grad= True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            #works because of numpy's broadcasting
+            self.grad += power * self.data ** (power - 1) * output.grad
+        output._backward = _backward
+        return output
+
+    def __truediv__(self, other: Union[int,float]) ->Tensor:
+        assert isinstance(other, (int,float))
+        return self * other ** (-1)
 
     def backward(self):
         topo_order = []
