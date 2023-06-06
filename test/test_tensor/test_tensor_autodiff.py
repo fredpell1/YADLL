@@ -62,3 +62,12 @@ def test_div_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
     
+def test_transpose_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a.transpose(0,1)
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c.transpose(0,1)
+    d.backward(torch.ones_like(d))
+    print(a.grad, c.grad)
+    assert np.all(a.grad == c.grad.numpy())

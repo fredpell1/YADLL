@@ -105,7 +105,19 @@ class Tensor():
     def __truediv__(self, other: Union[int,float]) ->Tensor:
         assert isinstance(other, (int,float))
         return self * other ** (-1)
+    
+    def transpose(self, dim0:int, dim1: int) -> Tensor:
+        output = Tensor(
+            np.transpose(self.data, (dim0,dim1)),
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            self.grad += output.grad.T
+        output._backward = _backward
+        return output
 
+    
     def backward(self):
         topo_order = []
         visited = set()
