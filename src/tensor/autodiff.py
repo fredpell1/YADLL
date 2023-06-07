@@ -4,11 +4,15 @@ import numpy as np
 class Tensor():
 
     def __init__(self, data: np.array, requires_grad: bool = False, parent = ()) -> None:
-        self.data = data
-        self.requires_grad = requires_grad
-        self.grad = np.zeros_like(data) if requires_grad else None
+        self.data : np.array = data
+        self.requires_grad : bool = requires_grad
+        self.grad : np.array = np.zeros_like(data) if requires_grad else None
         self._backward = lambda: None
         self.parent = parent
+
+    def __getitem__(self,val):
+        #numpy already implements fancy indexing, let's use it!
+        return self.data[val]
 
     def __neg__(self):
         return self * -1

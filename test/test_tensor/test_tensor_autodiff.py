@@ -1,6 +1,11 @@
 from src.tensor.autodiff import *
 import numpy as np
 import torch
+
+def test_getitem():
+    a = Tensor(np.array([[1,2],[2,1]]))
+    assert np.all(a[:,0] == a.data[:,0])
+
 def test_mul_scalar_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
     b = a * 2
