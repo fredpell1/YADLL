@@ -98,3 +98,31 @@ def test_max_backward_pass():
     d = c.max() * 3
     d.backward()
     assert np.all(a.grad == c.grad.numpy())
+
+def test_relu_backward_pass():
+    a = Tensor(np.array([[-1.0,2], [-3,2]]), requires_grad=True)
+    b = a.relu() * 2
+    b.backward()
+    c = torch.tensor([[-1.0,2], [-3,2]], requires_grad=True)
+    d = c.relu() * 2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_exp_backward_pass():
+    a = Tensor(np.array([[-1.0,2], [-3,2]]), requires_grad=True)
+    b = a.exp() * 2
+    b.backward()
+    c = torch.tensor([[-1.0,2], [-3,2]], requires_grad=True, dtype=torch.float64)
+    d = c.exp() * 2.0
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_log_backward_pass():
+    a = Tensor(np.array([[1.0,2], [3,2]]), requires_grad=True)
+    b = a.log() * 2
+    b.backward()
+    c = torch.tensor([[1.0,2], [3,2]], requires_grad=True, dtype=torch.float64)
+    d = c.log() * 2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+

@@ -148,13 +148,38 @@ class Tensor():
         return output
 
     def relu(self) -> Tensor:
-        pass
+        output = Tensor(
+            np.where(self.data > 0, self.data, 0),
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            self.grad += np.where(self.data > 0, output.grad, 0)
+        output._backward = _backward
+        return output
 
     def exp(self) -> Tensor:
-        pass
+        output = Tensor(
+            np.exp(self.data),
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            self.grad += np.exp(self.data) * output.grad
+        output._backward = _backward
+
+        return output
 
     def log(self) -> Tensor:
-        pass
+        output = Tensor(
+            np.log(self.data),
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            self.grad += self.data ** (-1) * output.grad
+        output._backward = _backward
+        return output
 
     def backward(self):
         topo_order = []
