@@ -117,7 +117,45 @@ class Tensor():
         output._backward = _backward
         return output
 
-    
+    def sum(self) -> Tensor:
+        output = Tensor(
+            np.sum(self.data),
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            assert output.grad.shape == ()
+            self.grad += np.full(self.data.shape, output.grad.item())
+        output._backward = _backward
+        return output
+
+    def mean(self) -> Tensor:
+        return self.sum() / self.data.size
+
+    def max(self) -> Tensor:
+        max_locations = np.argwhere(self.data == np.max(self.data))  
+        output = Tensor(
+            self.data[max_locations[0,0], max_locations[0,1]],
+            requires_grad=True if self.requires_grad else False,
+            parent = (self,)
+        )
+        def _backward():
+            grad_matrix = np.zeros(self.data.shape)
+            div = np.sum(max_locations)
+            grad_matrix[max_locations[:,0], max_locations[:,1]] = 1/div
+            self.grad += grad_matrix * output.grad
+        output._backward = _backward
+        return output
+
+    def relu(self) -> Tensor:
+        pass
+
+    def exp(self) -> Tensor:
+        pass
+
+    def log(self) -> Tensor:
+        pass
+
     def backward(self):
         topo_order = []
         visited = set()
