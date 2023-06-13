@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union
+from typing import Union, Tuple
 import numpy as np
 class Tensor():
 
@@ -21,7 +21,7 @@ class Tensor():
         other = other if isinstance(other,Tensor) else Tensor(other)
         output = Tensor(
             self.data + other.data,
-            requires_grad= True if other.requires_grad else False,
+            requires_grad= True if self.requires_grad else False,
             parent = (self,other)
             )
         def _backward():
@@ -85,7 +85,7 @@ class Tensor():
             parent = (self,other)
         )
         def _backward():
-            self.grad += output.grad @ other.data.T # would be better if .T was supported on Tensor directly
+            self.grad += output.grad @ other.data.T 
             other.grad += self.data.T @ output.grad
         output._backward = _backward
         return output
@@ -112,7 +112,7 @@ class Tensor():
     
     def transpose(self, dim0:int, dim1: int) -> Tensor:
         output = Tensor(
-            np.transpose(self.data, (dim0,dim1)),
+            np.transpose(self.data, (dim1,dim0)),
             requires_grad=True if self.requires_grad else False,
             parent = (self,)
         )
@@ -200,5 +200,17 @@ class Tensor():
                 self.__build_topological_sort(parent, visited, topo_order)
             topo_order.append(v)
 
+    @property
+    def shape(self) -> Tuple:
+        return self.data.shape
+    
+    @property
+    def T(self) -> Tensor:
+        return self.transpose(0,1)
 
-        
+    @staticmethod
+    def random(dim: Tuple, requires_grad : bool)->Tensor:
+        return Tensor(
+            np.random.randn(*dim),
+            requires_grad
+        )
