@@ -1,6 +1,11 @@
 from src.tensor.autodiff import *
 import numpy as np
 import torch
+
+def test_getitem():
+    a = Tensor(np.array([[1,2],[2,1]]))
+    assert np.all(a[:,0] == a.data[:,0])
+
 def test_mul_scalar_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
     b = a * 2
@@ -62,3 +67,67 @@ def test_div_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
     
+def test_transpose_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a.transpose(0,1)
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c.transpose(0,1)
+    d.backward(torch.ones_like(d))
+    print(a.grad, c.grad)
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_sum_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a.sum()
+    b.backward()
+    c = torch.tensor([[1.0,2], [2,1]], requires_grad=True)
+    d = c.sum()
+    d.backward()
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_mean_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a.mean()
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c.mean()
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_max_backward_pass():
+    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    b = a.max() * 3
+    b.backward()
+    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
+    d = c.max() * 3
+    d.backward()
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_relu_backward_pass():
+    a = Tensor(np.array([[-1.0,2], [-3,2]]), requires_grad=True)
+    b = a.relu() * 2
+    b.backward()
+    c = torch.tensor([[-1.0,2], [-3,2]], requires_grad=True)
+    d = c.relu() * 2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_exp_backward_pass():
+    a = Tensor(np.array([[-1.0,2], [-3,2]]), requires_grad=True)
+    b = a.exp() * 2
+    b.backward()
+    c = torch.tensor([[-1.0,2], [-3,2]], requires_grad=True, dtype=torch.float64)
+    d = c.exp() * 2.0
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
+def test_log_backward_pass():
+    a = Tensor(np.array([[1.0,2], [3,2]]), requires_grad=True)
+    b = a.log() * 2
+    b.backward()
+    c = torch.tensor([[1.0,2], [3,2]], requires_grad=True, dtype=torch.float64)
+    d = c.log() * 2
+    d.backward(torch.ones_like(d))
+    assert np.all(a.grad == c.grad.numpy())
+
