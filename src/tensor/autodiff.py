@@ -11,8 +11,16 @@ class Tensor():
         self.parent = parent
 
     def __getitem__(self,val):
-        #numpy already implements fancy indexing, let's use it!
-        return self.data[val]
+        output = Tensor(
+            self.data[val],
+            requires_grad=True,
+            parent=(self,)
+        )
+        def _backward():
+            self.grad += np.zeros(output.shape)
+            self.grad[val] += output.grad
+        output._backward = _backward
+        return output
 
     def __neg__(self):
         return self * -1

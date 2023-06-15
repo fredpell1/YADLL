@@ -2,9 +2,20 @@ from src.tensor.autodiff import *
 import numpy as np
 import torch
 
-def test_getitem():
-    a = Tensor(np.array([[1,2],[2,1]]))
-    assert np.all(a[:,0] == a.data[:,0])
+def test_getitem_backward_pass():
+    x = Tensor(np.array([[1.0,2,3],
+                    [4,5,6],
+                    [7,8,9]]), requires_grad=True)
+    y = x[:1,:]
+    z = y.mean() + x[0,0]
+    z.backward()
+    torch_x = torch.tensor([[1,2,3],
+                    [4,5,6],
+                    [7,8,9]], dtype=torch.float64, requires_grad=True)
+    torch_y = torch_x[:1, :] + torch_x[0,0]
+    torch_z = torch_y.mean()
+    torch_z.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
 
 def test_mul_scalar_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
