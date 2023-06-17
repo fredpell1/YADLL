@@ -142,3 +142,13 @@ def test_log_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
 
+def test_pad_backward_pass():
+    a = Tensor(np.array([[1.0,2], [3,2]]), requires_grad=True)
+    b = a.pad(((1,1),(2,2)))
+    c = b.mean() + a[0,0]
+    c.backward()
+    torch_a = torch.tensor([[1.0,2], [3,2]], requires_grad=True, dtype=torch.float64)
+    torch_b = torch.nn.functional.pad(torch_a, (1,1,2,2))
+    torch_c = torch_b.mean() + torch_a[0,0]
+    torch_c.backward()
+    assert np.all(a.grad ==  torch_a.grad.detach().numpy())

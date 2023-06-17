@@ -17,7 +17,7 @@ class Tensor():
             parent=(self,)
         )
         def _backward():
-            self.grad += np.zeros(output.shape)
+            self.grad += np.zeros(self.shape)
             self.grad[val] += output.grad
         output._backward = _backward
         return output
@@ -128,6 +128,19 @@ class Tensor():
             self.grad += output.grad.T
         output._backward = _backward
         return output
+
+    def pad(self, pad: Union[tuple[tuple], int], value = None) -> Tensor:
+        output = Tensor(
+            np.pad(self.data, pad, constant_values = value if value else 0),
+            True,
+            parent = (self,)
+        )
+        def _backward():
+            slices = [slice(p[0], -p[1], None) for p in pad]
+            self.grad += output.grad[np.s_[tuple(slices)]]
+        output._backward = _backward
+        return output        
+
 
     def sum(self) -> Tensor:
         output = Tensor(
