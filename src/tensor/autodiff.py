@@ -19,9 +19,7 @@ def shape_to_axis(old_shape,new_shape):
         old_shape = add_dimensions(old_shape, new_shape)
     elif len(old_shape) > len(new_shape):
         new_shape = add_dimensions(old_shape, new_shape)
-    size = tuple(i for i,(a,b) in enumerate(zip(old_shape, new_shape)) if a != b)
-    print(size)
-    return size
+    return tuple(i for i,(a,b) in enumerate(zip(old_shape, new_shape)) if a != b)
 
 class Tensor():
 
