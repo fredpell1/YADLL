@@ -82,7 +82,6 @@ class Conv2d(Module):
                 for in_index  in range(self.in_channels):
                     for i,h_kernel in enumerate(range(0, (Hin - self.kernel_size[0])+ 1, self.stride[0])):
                         for j,w_kernel in enumerate(range(0, (Win - self.kernel_size[1]) + 1, self.stride[1])):
-                            count += 6
                             out[batch,out_index,i,j] += (self.weight[out_index, in_index, :, :] * padded_x[batch, in_index, h_kernel:h_kernel+self.kernel_size[0], w_kernel:w_kernel + self.kernel_size[1]]).sum()
 
                 if self.bias:

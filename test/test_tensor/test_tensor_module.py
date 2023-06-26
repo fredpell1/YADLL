@@ -148,7 +148,7 @@ def test_conv2d_with_bias_backward():
     x = Tensor.random((1, 1, 3,3), True, name='x')
     conv = Conv2d(1,1,(2,2),stride=(1,1),padding = ((0,0), (0,0)), bias=True)
     torch_x = torch.tensor(x.data, dtype=torch.float64)
-    torch_conv = torch.nn.Conv2d(1,1,2,padding=(0,0), bias=True)
+    torch_conv = torch.nn.Conv2d(1,1,3,padding=(0,0), bias=True)
     torch_conv.weight = torch.nn.Parameter(torch.tensor(conv.weight.data))
     torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
     out = conv.forward(x).mean() * 3.2 - 2.3

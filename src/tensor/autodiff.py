@@ -1,6 +1,28 @@
 from __future__ import annotations
 from typing import Union, Tuple
 import numpy as np
+
+def add_dimensions(old_shape, new_shape):
+    if len(old_shape) <= len(new_shape):
+        minimal_length = old_shape
+        other_shape = new_shape
+    else:
+        minimal_length = new_shape
+        other_shape = old_shape
+    
+    return minimal_length + (1,) * (len(other_shape) - len(minimal_length))
+
+def shape_to_axis(old_shape,new_shape):
+    # taken from https://github.com/geohot/tinygrad/blob/master/tinygrad/runtime/ops_cpu.py
+    if len(old_shape) == 0 or len(new_shape) == 0: return None
+    if len(old_shape) < len(new_shape):
+        old_shape = add_dimensions(old_shape, new_shape)
+    elif len(old_shape) > len(new_shape):
+        new_shape = add_dimensions(old_shape, new_shape)
+    size = tuple(i for i,(a,b) in enumerate(zip(old_shape, new_shape)) if a != b)
+    print(size)
+    return size
+
 class Tensor():
 
     def __init__(self, data: np.array, requires_grad: bool = False, parent = (), op='', name='') -> None:
@@ -66,7 +88,8 @@ class Tensor():
         def _backward():
             self.grad += output.grad
             if other.requires_grad:
-                other.grad += output.grad if other.shape == output.shape else output.grad.sum()
+                other.grad += output.grad if other.shape == output.shape else \
+                    output.grad.sum(axis=shape_to_axis(self.shape, other.shape), keepdims=True).reshape(other.grad.shape)
         output._backward = _backward
         return output
     
