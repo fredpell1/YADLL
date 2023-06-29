@@ -130,8 +130,8 @@ def test_matmul_backward_pass():
     assert np.all(a.grad == d.grad.numpy()) and np.all(b.grad == e.grad.numpy())
 
 def test_batch_matmul_backward_pass():
-    a = Tensor.random((4,3,2))
-    b = Tensor.random((4,2,2))
+    a = Tensor.random((4,3,2,2))
+    b = Tensor.random((4,3,2,3))
     c = (a @ b).sum()
     torch_a = torch.tensor(a.data, requires_grad=True)
     torch_b = torch.tensor(b.data, requires_grad=True)

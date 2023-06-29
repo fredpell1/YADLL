@@ -154,8 +154,8 @@ class Tensor():
             op = "matmul"
         )
         def _backward():
-            self.grad += output.grad @ other.data.T 
-            other.grad += self.data.T @ output.grad
+            self.grad += output.grad @ other.T.data 
+            other.grad += self.T.data @ output.grad
         output._backward = _backward
         return output
 
