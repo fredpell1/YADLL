@@ -51,6 +51,7 @@ class Tensor():
     
 
     def __setitem__(self, index, value):
+        #this is really bad and should be refactored
         self.data[index] = value.data
         self.parent = (*self.parent, value)
         self.op = "setitem"
@@ -145,6 +146,7 @@ class Tensor():
     
 
     def __matmul__(self,other: Tensor) -> Tensor:
+        #TODO: fix this for when tensors are more than just 2-dimensional
         output = Tensor(
             self.data @ other.data,
             requires_grad = True if self.requires_grad else False,
@@ -178,24 +180,36 @@ class Tensor():
         assert isinstance(other, (int,float))
         return self * other ** (-1)
     
-    def transpose(self, dim0:int, dim1: int) -> Tensor:
+
+    # movement operations
+
+    def permute(self, order: tuple[int]) -> Tensor:
         output = Tensor(
-            np.transpose(self.data, (dim1,dim0)),
-            requires_grad=True if self.requires_grad else False,
-            parent = (self,),
-            op="transpose"
+            self.data.transpose(order),
+            True,
+            (self,),
+            "permute",
+            self.name
         )
         def _backward():
-            self.grad += output.grad.T
+            self.grad += np.transpose(output.grad, np.argsort(order)) #using argsort transpose output.grad back to initial shape
+
         output._backward = _backward
         return output
+    
+    def transpose(self, dim0:int, dim1: int) -> Tensor:
+        permutation = [i for i in range(len(self.shape))]
+        permutation[dim0] = dim1
+        permutation[dim1] = dim0
+        return self.permute(permutation)
 
     def pad(self, pad: Union[tuple[tuple], int], value = None) -> Tensor:
         output = Tensor(
             np.pad(self.data, pad, constant_values = value if value else 0),
             True,
             parent = (self,),
-            op = "pad"
+            op = "pad",
+            name = self.name
         )
         def _backward():
             slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
@@ -203,7 +217,43 @@ class Tensor():
         output._backward = _backward
         return output        
     
+    def reshape(self,dim: tuple[int])->Tensor:
+        output = Tensor(
+            np.reshape(self.data, dim),
+            True,
+            (self,),
+            "reshape",
+            self.name
+        )
+        def _backward():
+            self.grad += np.reshape(output.grad, self.shape) 
+        output._backward = _backward
+        return output
     
+    def expand(self,dim: tuple[int])->Tensor:
+        output = Tensor(
+            np.broadcast_to(self.data, dim),
+            True,
+            (self,),
+            "expand",
+            self.name
+        )
+        def _backward():
+            self.grad += output.grad.sum(axis=shape_to_axis(self.shape, output.shape), keepdims=True).reshape(self.shape)
+
+        output._backward = _backward
+        return output
+
+    def squeeze(self, dim:Union[tuple[int], int])->Tensor:
+        new_shape = tuple(self.shape[i] for i in range(len(self.shape)) if i not in dim)
+        return self.reshape(new_shape)
+
+    def flatten(self, start_dim: int = 0) -> Tensor:
+        #only supporting flatten from a dim to the end for now
+        new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(len(self.shape) - start_dim)))
+        return self.reshape((new_shape))
+    
+    # end of movement operations
 
 
     def sum(self) -> Tensor:
@@ -297,7 +347,7 @@ class Tensor():
     
     @property
     def T(self) -> Tensor:
-        return self.transpose(0,1)
+        return self.transpose(-2,-1)
 
     @staticmethod
     def random(dim: Tuple, requires_grad : bool = True, name='')->Tensor:
