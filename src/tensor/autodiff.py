@@ -3,14 +3,10 @@ from typing import Union, Tuple
 import numpy as np
 
 def add_dimensions(old_shape, new_shape):
-    if len(old_shape) <= len(new_shape):
-        minimal_length = old_shape
-        other_shape = new_shape
-    else:
-        minimal_length = new_shape
-        other_shape = old_shape
+    # I apologize for anyone reading these one liners
+    shape = tuple(d if s!= 1 else s for s,d in zip(old_shape[::-1], new_shape[::-1]) if s == d or s==1 or d==1)[::-1]
+    return shape if len(old_shape) == len(new_shape) else (1,) * (abs(len(old_shape) - len(new_shape))) + shape if len(old_shape) > len(new_shape) else shape + (1,) * (abs(len(old_shape) - len(new_shape)))
     
-    return minimal_length + (1,) * (len(other_shape) - len(minimal_length))
 
 def shape_to_axis(old_shape,new_shape):
     # taken from https://github.com/geohot/tinygrad/blob/master/tinygrad/runtime/ops_cpu.py
@@ -154,8 +150,9 @@ class Tensor():
             op = "matmul"
         )
         def _backward():
-            self.grad += output.grad @ other.T.data 
-            other.grad += self.T.data @ output.grad
+            self.grad += output.grad @ other.T.data
+            intermediary_grad = (self.T.data @ output.grad)
+            other.grad += intermediary_grad.sum(shape_to_axis(intermediary_grad.shape, other.shape))
         output._backward = _backward
         return output
 
