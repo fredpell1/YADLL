@@ -71,23 +71,15 @@ class Conv2d(Module):
             (Win + 2*self.padding[1][0] - self.kernel_size[1])/self.stride[1] + 1
         )
         return int(Hout), int(Wout)
+    
 
     def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 4, "conv2d currently only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1]) #could optimize and only compute this once
-        Hin, Win = padded_x.shape[-2], padded_x.shape[-1]
-        out = Tensor.zeros((x.shape[0], self.out_channels, Hout, Wout), name="out")
-        for batch in range(padded_x.shape[0]):
-            for out_index in range(self.out_channels):
-                for in_index  in range(self.in_channels):
-                    for i,h_kernel in enumerate(range(0, (Hin - self.kernel_size[0])+ 1, self.stride[0])):
-                        for j,w_kernel in enumerate(range(0, (Win - self.kernel_size[1]) + 1, self.stride[1])):
-                            out[batch,out_index,i,j] += (self.weight[out_index, in_index, :, :] * padded_x[batch, in_index, h_kernel:h_kernel+self.kernel_size[0], w_kernel:w_kernel + self.kernel_size[1]]).sum()
-
-                if self.bias:
-                    out[batch, out_index,:, :] += self.b[out_index] #adding the bias out of in_channels loop to avoid over-adding it if multiple channels
-        return out
-
+        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
+        out = (expanded_view.reshape((Hout,Wout, padded_x.shape[0],padded_x.shape[1] * self.kernel_size[0] * self.kernel_size[1])) @ self.weight.flatten(1).T).permute((2,3,0,1))
+        return out + self.b.reshape((-1,1,1)) if self.bias else out
 
 class Sum(Module):
     def __init__(self) -> None:

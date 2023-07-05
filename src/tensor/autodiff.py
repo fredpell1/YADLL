@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Union, Tuple
 import numpy as np
+from skimage.util.shape import view_as_blocks, view_as_windows
 
 def add_dimensions(old_shape, new_shape):
     # I apologize for anyone reading these one liners
@@ -142,7 +143,6 @@ class Tensor():
     
 
     def __matmul__(self,other: Tensor) -> Tensor:
-        #TODO: fix this for when tensors are more than just 2-dimensional
         output = Tensor(
             self.data @ other.data,
             requires_grad = True if self.requires_grad else False,
@@ -247,9 +247,12 @@ class Tensor():
 
     def flatten(self, start_dim: int = 0) -> Tensor:
         #only supporting flatten from a dim to the end for now
-        new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(len(self.shape) - start_dim)))
+        new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(start_dim+1)))
         return self.reshape((new_shape))
     
+    def stride(self,strides:tuple, stride: int=1):
+        return Tensor(view_as_windows(self.data, strides,stride), True, (self,))
+
     # end of movement operations
 
 

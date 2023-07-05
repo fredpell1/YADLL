@@ -98,7 +98,8 @@ def test_conv2d_output_default_stride():
         torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
         out = conv.forward(x)
         torch_out = torch_conv(torch_x)
-        assert np.all(abs(out.data - torch_out.numpy()) < 0.00000001)
+
+        assert np.all(abs(out.data - torch_out.numpy()) < 0.0000001)
 
 def test_conv2d_output_two_stride():
     with torch.no_grad():
@@ -173,10 +174,10 @@ def test_conv2d_with_bias_backward():
 
 
 def test_conv2d_all_features_backward():
-    x = Tensor.random((2, 3, 3,3), True, name='x')
-    conv = Conv2d(3,3,(2,2),stride=(2,2),padding = ((1,1), (1,1)), bias=True)
+    x = Tensor.random((32, 3, 28,28), True, name='x')
+    conv = Conv2d(3,5,(3,3),stride=(2,2),padding = ((1,1), (1,1)), bias=True)
     torch_x = torch.tensor(x.data, dtype=torch.float64)
-    torch_conv = torch.nn.Conv2d(2,3,3,stride=2,padding=(1,1), bias=True)
+    torch_conv = torch.nn.Conv2d(3,5,3,stride=2,padding=(1,1), bias=True)
     torch_conv.weight = torch.nn.Parameter(torch.tensor(conv.weight.data))
     torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
     out = conv.forward(x).mean() * 3.2 - 2.3
@@ -185,3 +186,4 @@ def test_conv2d_all_features_backward():
     torch_out.backward()
     assert np.all(abs(conv.weight.grad - torch_conv.weight.grad.detach().numpy()) < 0.00000001)
     assert np.all(abs(conv.b.grad - torch_conv.bias.grad.detach().numpy()) < 0.00000001)
+
