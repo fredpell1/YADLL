@@ -252,6 +252,7 @@ def test_pad_backward_pass():
     torch_c.backward()
     assert np.all(a.grad ==  torch_a.grad.detach().numpy())
 
+
 def test_permute_backward_pass():
     a = Tensor(np.random.rand(3,4,2), True)
     b = a.permute((1,2,0))
