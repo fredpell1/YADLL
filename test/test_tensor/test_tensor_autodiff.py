@@ -2,21 +2,112 @@ from src.tensor.autodiff import *
 import numpy as np
 import torch
 
-def test_getitem():
-    a = Tensor(np.array([[1,2],[2,1]]))
-    assert np.all(a[:,0] == a.data[:,0])
+def test_getitem_backward_pass():
+    x = Tensor(np.array([[1.0,2,3],
+                    [4,5,6],
+                    [7,8,9]]), requires_grad=True)
+    y = x[:1,:]
+    z = y.mean() + x[0,0]
+    z.backward()
+    torch_x = torch.tensor([[1,2,3],
+                    [4,5,6],
+                    [7,8,9]], dtype=torch.float64, requires_grad=True)
+    torch_y = torch_x[:1, :] + torch_x[0,0]
+    torch_z = torch_y.mean()
+    torch_z.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
+
+def test_setitem_backward_pass():
+    x = Tensor(np.array([[1.0,2,3],
+                  [4,5,6],
+                  [7,8,9]]), requires_grad=True)
+    y = Tensor.zeros(x.shape, True)
+    y[0,0] = x[0,0]
+    y = y**2
+    y[0,1] = x[1,1]
+    z = y.mean()
+    z.backward()
+    torch_x = torch.tensor([[1,2,3],
+                  [4,5,6],
+                  [7,8,9]], dtype=torch.float64, requires_grad=True)
+    torch_y = torch.zeros_like(torch_x)
+    torch_y[0,0] = torch_x[0,0]
+    torch_y = torch_y ** 2
+    torch_y[0,1] = torch_x[1,1]
+    torch_z = torch_y.mean()
+    torch_x.retain_grad()
+    torch_z.backward()
+    print(x.grad, torch_x.grad)
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
+
+def test_add_scalar_backward_pass():
+    x = Tensor(np.array([[1.0,2], [3,4]]), requires_grad=True)
+    b = Tensor(np.array([2.0]), requires_grad=True)
+    y = (x + b).sum() * 3
+    y.backward()
+    torch_x = torch.tensor(x.data, requires_grad=True)
+    torch_b = torch.tensor(b.data, requires_grad=True)
+    torch_y = (torch_x + torch_b).sum() * 3
+    torch_y.backward()
+    assert np.all(b.grad == torch_b.grad.detach().numpy())
+
+def test_add_tensor_same_shape_backward_pass():
+    x = Tensor(np.array([[1.0,2], [2,3]]), requires_grad=True)
+    y = Tensor(np.array([[1.0,1], [3.2, 4.3]]), requires_grad=True)
+    z = (x + y).sum() ** 2
+    z.backward()
+    
+    torch_x = torch.tensor([[1.0,2],[2,3]], requires_grad=True)
+    torch_y = torch.tensor([[1.0,1], [3.2, 4.3]], requires_grad=True)
+    torch_x.retain_grad()
+    torch_y.retain_grad()
+    torch_z = (torch_x + torch_y).sum() ** 2
+    torch_z.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
+    assert np.all(y.grad == torch_y.grad.detach().numpy())
+
+def test_add_tensor_row_broadcast_backward_pass():
+    x = Tensor(np.array([[1.0,2], [2,3]]), requires_grad=True)
+    y = Tensor(np.array([1.0,1]), requires_grad=True)
+    z = (x + y).sum() ** 2
+    z.backward()
+    
+    torch_x = torch.tensor([[1.0,2],[2,3]], requires_grad=True)
+    torch_y = torch.tensor([1.0,1], requires_grad=True)
+    torch_x.retain_grad()
+    torch_y.retain_grad()
+    torch_z = (torch_x + torch_y).sum() ** 2
+    torch_z.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
+    assert np.all(y.grad == torch_y.grad.detach().numpy())
+
+def test_add_tensor_col_broadcast_backward_pass():
+    x = Tensor(np.array([[1.0,2], [2,3]]), requires_grad=True)
+    y = Tensor(np.array([[1.0],[1]]), requires_grad=True)
+    z = (x + y).sum() ** 2
+    z.backward()
+    
+    torch_x = torch.tensor([[1.0,2],[2,3]], requires_grad=True)
+    torch_y = torch.tensor([[1.0],[1]], requires_grad=True)
+    torch_x.retain_grad()
+    torch_y.retain_grad()
+    torch_z = (torch_x + torch_y).sum() ** 2
+    torch_z.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy())
+    assert np.all(y.grad == torch_y.grad.detach().numpy())
+
 
 def test_mul_scalar_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
-    b = a * 2
+    b = (a * 2).sum() ** 2
     b.backward()
     c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
-    d = (c * 2)
-    d.backward(torch.ones_like(d)) #need to pass a tensor because d has more than one element
-    print(a.grad, c.grad)
+    d = (c * 2).sum() ** 2
+    d.backward() #need to pass a tensor because d has more than one element
     assert np.all(a.grad == c.grad.numpy())
     
-def test_mul_matrix_backward_pass():
+#TODO: test mul with broadcasting
+def test_mul_tensor_same_shape_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
     b = Tensor(np.array([[2,2],[3,4]]), requires_grad = True)
     c = a * b
@@ -37,6 +128,17 @@ def test_matmul_backward_pass():
     f = d @ e
     f.backward(torch.ones_like(f))
     assert np.all(a.grad == d.grad.numpy()) and np.all(b.grad == e.grad.numpy())
+
+def test_batch_matmul_backward_pass():
+    a = Tensor.random((4,3,2,2))
+    b = Tensor.random((4,3,2,3))
+    c = (a @ b).sum()
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch.tensor(b.data, requires_grad=True)
+    torch_c = (torch_a @ torch_b).sum()
+    c.backward()
+    torch_c.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy())
 
 def test_rmatmul_backward_pass():
     a = Tensor(np.array([[1,2],[2,1]]), requires_grad = True)
@@ -68,14 +170,22 @@ def test_div_backward_pass():
     assert np.all(a.grad == c.grad.numpy())
     
 def test_transpose_backward_pass():
-    a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
+    a = Tensor(np.random.rand(3,4,2), True)
     b = a.transpose(0,1)
-    b.backward()
-    c = torch.tensor([[1.0,2],[2,1]], requires_grad=True)
-    d = c.transpose(0,1)
-    d.backward(torch.ones_like(d))
-    print(a.grad, c.grad)
-    assert np.all(a.grad == c.grad.numpy())
+    c = b.transpose(0,2)
+    d = c.sum()
+    d.backward()
+    torch_a = torch.tensor(a.data, requires_grad = True)
+    torch_b = torch_a.transpose(0,1)
+    torch_c = torch_b.transpose(0,2)
+    torch_d = torch_c.sum()
+    torch_a.retain_grad()
+    torch_b.retain_grad()
+    torch_c.retain_grad()
+    torch_d.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+    assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
+    assert np.all(c.grad == torch_c.grad.detach().numpy()), "c.grad incorrect"
 
 def test_sum_backward_pass():
     a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
@@ -131,3 +241,87 @@ def test_log_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
 
+def test_pad_backward_pass():
+    a = Tensor(np.array([[1.0,2], [3,2]]), requires_grad=True)
+    b = a.pad(((1,1),(2,2)))
+    c = b.mean() + a[0,0]
+    c.backward()
+    torch_a = torch.tensor([[1.0,2], [3,2]], requires_grad=True, dtype=torch.float64)
+    torch_b = torch.nn.functional.pad(torch_a, (1,1,2,2))
+    torch_c = torch_b.mean() + torch_a[0,0]
+    torch_c.backward()
+    assert np.all(a.grad ==  torch_a.grad.detach().numpy())
+
+
+def test_permute_backward_pass():
+    a = Tensor(np.random.rand(3,4,2), True)
+    b = a.permute((1,2,0))
+    c = b.permute((2,0,1)) * 3
+    d = c.mean()
+    d.backward()
+    torch_a = torch.tensor(a.data, requires_grad = True)
+    torch_b = torch_a.permute((1,2,0))
+    torch_c = torch_b.permute((2,0,1)) * 3
+    torch_d = torch_c.mean()
+    torch_a.retain_grad()
+    torch_b.retain_grad()
+    torch_c.retain_grad()
+    torch_d.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+    assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
+    assert np.all(c.grad == torch_c.grad.detach().numpy()), "c.grad incorrect"
+
+def test_reshape_backward_pass():
+    a = Tensor(np.random.rand(3,4,2), True)
+    b = a.reshape((3,8))
+    c = b.reshape((3,2,4))
+    d = c.sum()
+    d.backward()
+    torch_a = torch.tensor(a.data, requires_grad = True)
+    torch_b = torch_a.reshape((3,8))
+    torch_c = torch_b.reshape((3,2,4))
+    torch_d = torch_c.sum()
+    torch_a.retain_grad()
+    torch_b.retain_grad()
+    torch_c.retain_grad()
+    torch_d.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+    assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
+    assert np.all(c.grad == torch_c.grad.detach().numpy()), "c.grad incorrect"
+    
+def test_flatten_backward_pass():
+    a = Tensor.random((2,1,4,3,4,2,4))
+    b = a.flatten(3).mean()
+    b.backward()
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.flatten(3).mean()
+    torch_b.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+
+def test_expand_backward_pass():
+    a = Tensor.random((3,1))
+    b = a.expand((3,3,3))
+    c = b.mean()
+    c.backward()
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.expand(3,3,3)
+    torch_c = torch_b.mean()
+    torch_b.retain_grad()
+    torch_c.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+    assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
+    
+
+def test_squeeze_backward_pass():
+    a = Tensor.random((1,3,1,4,2,1))
+    b = a.squeeze((0,2))
+    c = b.mean()
+    c.backward()
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.squeeze(0,2)
+    torch_c = torch_b.mean()
+    torch_b.retain_grad()
+    torch_c.backward()
+    assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
+    assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
+    
