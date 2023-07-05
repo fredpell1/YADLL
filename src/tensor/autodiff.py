@@ -209,7 +209,6 @@ class Tensor():
             name = self.name
         )
         def _backward():
-            print(pad)
             slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
             self.grad += output.grad[np.s_[tuple(slices)]]
         output._backward = _backward

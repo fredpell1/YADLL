@@ -120,6 +120,54 @@ class Conv2d(Module):
         out = (expanded_view.reshape((Hout,Wout, padded_x.shape[0],padded_x.shape[1] * self.kernel_size[0] * self.kernel_size[1])) @ self.weight.flatten(1).T).permute((2,3,0,1))
         return out + self.b.reshape((-1,1,1)) if self.bias else out
 
+
+class Conv3d(Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: tuple,
+        stride: tuple=(1,1,1),
+        padding:tuple[tuple]=((0,0), (0,0), (0,0)),
+        bias=True
+        ) -> None:
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.bias = bias
+        self.weight = Tensor.random((out_channels, in_channels, *kernel_size))
+        self.params.append(self.weight)
+        if bias:
+            self.b = Tensor.random((out_channels,))
+            self.params.append(self.b)
+
+    def __compute_out_dim(self, Din, Hin, Win) -> tuple[int,int,int]:
+        pad0 = self.padding[0][0]
+        pad1 = self.padding[1][0]
+        pad2 = self.padding[2][0]
+        Dout = np.floor(
+            (Din + 2*pad0 - self.kernel_size[0])/ self.stride[0] + 1
+        )
+        Hout = np.floor(
+            (Hin + 2*pad1 - self.kernel_size[1])/ self.stride[1] + 1
+        )
+        Wout = np.floor(
+            (Win + 2*pad2 - self.kernel_size[2])/ self.stride[2] + 1
+        )
+        return int(Dout), int(Hout), int(Wout)
+    
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 5, "conv3d currently only supports batched inputs"
+        padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
+        Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
+        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
+        out = (expanded_view.reshape((Dout,Hout,Wout, padded_x.shape[0], padded_x.shape[1] * np.prod(self.kernel_size))) @ self.weight.flatten(1).T).permute((3,4,0,1,2))
+        return out + self.b.reshape((-1,1,1,1)) if self.bias else out
+    
+
 class Sum(Module):
     def __init__(self) -> None:
         super().__init__()

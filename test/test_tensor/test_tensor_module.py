@@ -225,3 +225,42 @@ def test_conv1d_pad_and_stride_backward_pass():
     assert np.all(abs(conv.weight.grad - torch_conv.weight.grad.detach().numpy()) < 0.00000001)
     assert np.all(abs(conv.b.grad - torch_conv.bias.grad.detach().numpy()) < 0.00000001)
     
+def test_conv3d_output():
+    x = Tensor.random((32,3,32,28,28))
+    conv = Conv3d(3,6,(3,3,3))
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_conv = torch.nn.Conv3d(3,6,3)
+    torch_conv.weight= torch.nn.Parameter(torch.tensor(conv.weight.data))
+    torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
+    torch_out = torch_conv(torch_x)
+    out = conv(x)
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001)
+
+def test_conv3d_backward_pass():
+    x = Tensor.random((32,3,32,28,28))
+    conv = Conv3d(3,6,(3,3,3))
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_conv = torch.nn.Conv3d(3,6,3)
+    torch_conv.weight= torch.nn.Parameter(torch.tensor(conv.weight.data))
+    torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
+    torch_out = torch_conv(torch_x).mean()
+    out = conv(x).mean()
+    torch_out.backward()
+    out.backward()
+    assert np.all(abs(conv.weight.grad - torch_conv.weight.grad.detach().numpy()) < 0.00000001)
+    assert np.all(abs(conv.b.grad - torch_conv.bias.grad.detach().numpy()) < 0.00000001)
+    
+def test_conv3d_pad_and_stride_backward_pass():
+    x = Tensor.random((32,3,32,28,28))
+    conv = Conv3d(3,6,(3,3,3), ((2,2,2)), ((1,1), (2,2), (1,1)))
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_conv = torch.nn.Conv3d(3,6,3, 2, (1,2,1))
+    torch_conv.weight= torch.nn.Parameter(torch.tensor(conv.weight.data))
+    torch_conv.bias = torch.nn.Parameter(torch.tensor(conv.b.data))
+    torch_out = torch_conv(torch_x).mean()
+    out = conv(x).mean()
+    torch_out.backward()
+    out.backward()
+    assert np.all(abs(conv.weight.grad - torch_conv.weight.grad.detach().numpy()) < 0.00000001)
+    assert np.all(abs(conv.b.grad - torch_conv.bias.grad.detach().numpy()) < 0.00000001)
+    
