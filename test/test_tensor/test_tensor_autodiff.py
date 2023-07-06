@@ -230,7 +230,7 @@ def test_exp_backward_pass():
     c = torch.tensor([[-1.0,2], [-3,2]], requires_grad=True, dtype=torch.float64)
     d = c.exp() * 2.0
     d.backward(torch.ones_like(d))
-    assert np.all(a.grad == c.grad.numpy())
+    assert np.all(abs(a.grad - c.grad.numpy()) < 0.00000001)
 
 def test_log_backward_pass():
     a = Tensor(np.array([[1.0,2], [3,2]]), requires_grad=True)
