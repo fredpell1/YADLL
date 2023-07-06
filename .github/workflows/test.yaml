@@ -19,7 +19,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install torch numpy scikit-image pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Test with pytest
         run: |
           pytest test/test_tensor/
