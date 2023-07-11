@@ -257,17 +257,16 @@ class Tensor():
     # end of movement operations
 
 
-    def sum(self) -> Tensor:
+    def sum(self, dim=None) -> Tensor:
         output = Tensor(
-            np.sum(self.data),
+            np.sum(self.data, axis=dim),
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
             op="sum",
             name=f"sum({self.name})"
         )
         def _backward():
-            assert output.grad.shape == ()
-            self.grad += np.full(self.data.shape, output.grad.item())
+            self.grad += np.expand_dims(output.grad, dim if dim else 0)
         output._backward = _backward
         return output
 
