@@ -274,19 +274,25 @@ class Tensor():
     def mean(self) -> Tensor:
         return self.sum() / self.data.size
 
-    def max(self) -> Tensor:
-        max_locations = np.argwhere(self.data == np.max(self.data))  
+    def max(self, dim: int = None) -> Tensor:
+        # NOTE: max() != max(axis=0)
+        max_locations = np.argmax(self.data,axis=dim)
+        max_value = np.take_along_axis(self.data,np.expand_dims(max_locations,axis=dim), axis=dim).squeeze(dim) if dim else self.data[np.unravel_index(max_locations, self.shape)]
         output = Tensor(
-            self.data[max_locations[0,0], max_locations[0,1]],
+            max_value, 
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
             op="max"
         )
+
         def _backward():
-            grad_matrix = np.zeros(self.data.shape)
-            div = np.sum(max_locations)
-            grad_matrix[max_locations[:,0], max_locations[:,1]] = 1/div
-            self.grad += grad_matrix * output.grad
+            grad_matrix = np.zeros(self.shape)
+            if dim:
+                np.put_along_axis(grad_matrix, np.expand_dims(max_locations, axis=dim), 1,axis=dim)
+            else:
+                grad_matrix = np.where(self.data == max_value, 1, 0)
+                grad_matrix = grad_matrix / np.sum(grad_matrix)
+            self.grad += grad_matrix * np.expand_dims(output.grad, axis=dim if dim else 0)
         output._backward = _backward
         return output
 
