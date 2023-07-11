@@ -175,7 +175,6 @@ class Tensor():
         return output
 
     def __truediv__(self, other: Union[int,float]) ->Tensor:
-        assert isinstance(other, (int,float))
         return self * other ** (-1)
     
 
@@ -270,8 +269,10 @@ class Tensor():
         output._backward = _backward
         return output
 
-    def mean(self) -> Tensor:
-        return self.sum() / self.data.size
+    def mean(self, dim=None) -> Tensor:
+        out = self.sum(dim)
+        div = Tensor(np.array(np.prod(out.shape), dtype=np.float32), True).expand((s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
+        return out / div
 
     def max(self, dim: int = None) -> Tensor:
         # NOTE: max() != max(axis=0)
