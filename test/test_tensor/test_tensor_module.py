@@ -320,3 +320,23 @@ def test_maxpool2d_backward_pass():
     torch_out.backward()
     assert np.all(abs(x.grad - torch_x.grad.detach().numpy()) < 0.00001), "result not equal"
     
+def test_maxpool3d_forward_pass():
+    x = Tensor.random((3,3,10,10,10))
+    pool = MaxPool3d((3,3,3))
+    out = pool(x)
+    torch_x = torch.tensor(x.data)
+    torch_pool = torch.nn.MaxPool3d(3)
+    torch_out = torch_pool(torch_x)
+    assert out.shape == torch_out.shape, "shape not equal"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
+
+def test_max_pool3d_with_padding_and_stride_forward_pass():
+    x = Tensor.random((3,3,10,10,10))
+    pool = MaxPool3d((3,3,3), (2,2,2,), ((1,1), (1,1), (1,1)))
+    out = pool(x)
+    torch_x = torch.tensor(x.data)
+    torch_pool = torch.nn.MaxPool3d(3,2,1)
+    torch_out = torch_pool(torch_x)
+    assert out.shape == torch_out.shape, "shape not equal"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
+    

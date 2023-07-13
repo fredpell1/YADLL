@@ -225,6 +225,41 @@ class MaxPool2d(Module):
         expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
         return expanded_view.max(-1).max(-1).reshape((Hout,Wout,x.shape[0], x.shape[1])).permute((2,3,0,1))
 
+class MaxPool3d(Module):
+    def __init__(
+        self,
+        kernel_size: tuple,
+        stride: tuple=None,
+        padding:tuple[tuple]=((0,0), (0,0), (0,0)),
+        ) -> None:
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride else kernel_size
+        self.padding = padding
+
+    def __compute_out_dim(self, Din, Hin, Win) -> tuple[int,int,int]:
+        pad0 = self.padding[0][0]
+        pad1 = self.padding[1][0]
+        pad2 = self.padding[2][0]
+        Dout = np.floor(
+            (Din + 2*pad0 - self.kernel_size[0])/ self.stride[0] + 1
+        )
+        Hout = np.floor(
+            (Hin + 2*pad1 - self.kernel_size[1])/ self.stride[1] + 1
+        )
+        Wout = np.floor(
+            (Win + 2*pad2 - self.kernel_size[2])/ self.stride[2] + 1
+        )
+        return int(Dout), int(Hout), int(Wout)    
+
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 5, "MaxPool3d only supports batched inputs"
+        padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
+        Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
+        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
+        return expanded_view.max(-1).max(-1).max(-1).reshape((Dout, Hout, Wout, x.shape[0], x.shape[1])).permute((3,4,0,1,2))
+
+
 class Sum(Module):
     def __init__(self) -> None:
         super().__init__()
