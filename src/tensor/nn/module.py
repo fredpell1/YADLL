@@ -167,7 +167,32 @@ class Conv3d(Module):
         out = (expanded_view.reshape((Dout,Hout,Wout, padded_x.shape[0], padded_x.shape[1] * np.prod(self.kernel_size))) @ self.weight.flatten(1).T).permute((3,4,0,1,2))
         return out + self.b.reshape((-1,1,1,1)) if self.bias else out
     
+class MaxPool1d(Module):
+    def __init__(
+        self,
+        kernel_size:int,
+        stride:int = None,
+        padding: tuple[tuple] = ((0,0),)
+        ) -> None:
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride else kernel_size
+        self.padding = padding
 
+
+    def __compute_out_length(self, Lin):
+        Lout = np.floor(
+            (Lin + 2*self.padding[0][0] - self.kernel_size) / self.stride + 1
+        )
+        return int(Lout)
+    
+
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 3, "MaxPool1d only supports batched inputs"
+        padded_x = x.pad(((0,0),(0,0),*self.padding), -np.inf) if any(pad > 0 for tup in self.padding for pad in tup) else x
+        Lout = self.__compute_out_length(x.shape[-1])
+        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
+        return expanded_view.max(-1).reshape((Lout, x.shape[0], x.shape[1])).permute((1,2,0))
 
 class MaxPool2d(Module):
     def __init__(

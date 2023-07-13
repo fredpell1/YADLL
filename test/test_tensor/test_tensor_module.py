@@ -265,6 +265,27 @@ def test_conv3d_pad_and_stride_backward_pass():
     assert np.all(abs(conv.b.grad - torch_conv.bias.grad.detach().numpy()) < 0.00000001)
     
 
+def test_maxpool1d_forward_pass():
+    x = Tensor.random((32,3,20))
+    pool = MaxPool1d(3)
+    out = pool(x)
+    torch_x = torch.tensor(x.data)
+    torch_pool = torch.nn.MaxPool1d(3)
+    torch_out = torch_pool(torch_x)
+    assert out.shape == torch_out.shape, "shape not equal"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
+
+def test_maxpool1d_with_padding_and_stride_forward_pass():
+    x = Tensor.random((32,3,20))
+    pool = MaxPool1d(3, 2, ((1,1),))
+    out = pool(x)
+    torch_x = torch.tensor(x.data)
+    torch_pool = torch.nn.MaxPool1d(3,2, 1)
+    torch_out = torch_pool(torch_x)
+    assert out.shape == torch_out.shape, "shape not equal"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
+    
+
 def test_maxpool2d_forward_pass():
     x = Tensor.random((32,3,28,28))
     pool = MaxPool2d((3,3))
