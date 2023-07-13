@@ -168,6 +168,38 @@ class Conv3d(Module):
         return out + self.b.reshape((-1,1,1,1)) if self.bias else out
     
 
+
+class MaxPool2d(Module):
+    def __init__(
+        self,
+        kernel_size: tuple[int],
+        stride: tuple[int] = None,
+        padding: tuple[tuple] = ((0,0), (0,0)),
+
+        ) -> None:
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride if stride else kernel_size
+        self.padding = padding
+
+    def __compute_out_dim(self, Hin, Win) -> tuple[int, int]:
+        assert self.padding[0][0] == self.padding[0][1]
+        assert self.padding[1][0] == self.padding[1][1]
+        Hout = np.floor(
+            (Hin + 2*self.padding[0][0] - self.kernel_size[0])/self.stride[0] + 1
+        )
+        Wout = np.floor(
+            (Win + 2*self.padding[1][0] - self.kernel_size[1])/self.stride[1] + 1
+        )
+        return int(Hout), int(Wout)
+    
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 4, "MaxPool2d only supports batched inputs"
+        padded_x = x.pad(((0,0),(0,0),*self.padding), -np.inf) if any(pad > 0 for tup in self.padding for pad in tup) else x
+        Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1])
+        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
+        return expanded_view.max(-1).max(-1).reshape((Hout,Wout,x.shape[0], x.shape[1])).permute((2,3,0,1))
+
 class Sum(Module):
     def __init__(self) -> None:
         super().__init__()
@@ -186,9 +218,6 @@ class Mean(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.mean()
 
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)
-
 
 class Max(Module):
     def __init__(self) -> None:
@@ -197,8 +226,6 @@ class Max(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.max()
 
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)
 
 
 class ReLU(Module):
@@ -208,8 +235,6 @@ class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.relu()
 
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)
 
 
 class Exp(Module):
@@ -219,8 +244,6 @@ class Exp(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.exp()
 
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)
 
 
 class Log(Module):
@@ -229,9 +252,6 @@ class Log(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return x.log()
-
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)
 
 
 class Sequential(Module):
@@ -255,5 +275,3 @@ class Sequential(Module):
             out = layer(out)
         return out
 
-    def __call__(self, x: Tensor) -> Tensor:
-        return self.forward(x)

@@ -174,7 +174,7 @@ class Tensor():
         output._backward = _backward
         return output
 
-    def __truediv__(self, other: Union[int,float]) ->Tensor:
+    def __truediv__(self, other: Union[int,float, Tensor]) ->Tensor:
         return self * other ** (-1)
     
 
@@ -206,7 +206,7 @@ class Tensor():
             True,
             parent = (self,),
             op = "pad",
-            name = self.name
+            name = f"{self.name}.pad()"
         )
         def _backward():
             slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
@@ -220,7 +220,7 @@ class Tensor():
             True,
             (self,),
             "reshape",
-            self.name
+            f"{self.name}.reshape()"
         )
         def _backward():
             self.grad += np.reshape(output.grad, self.shape) 
@@ -251,8 +251,18 @@ class Tensor():
         return self.reshape((new_shape))
     
     def stride(self,strides:tuple, stride: int=1):
-        return Tensor(view_as_windows(self.data, strides,stride), True, (self,))
-
+        #backward pass is currently broken
+        out = Tensor(
+            view_as_windows(np.copy(self.data), strides, stride),
+            True,
+            (self,),
+            "stride",
+            f"{self.name}.stride()"
+        )
+        def _backward():
+            self.grad += np.lib.stride_tricks.as_strided(out.grad, self.shape, self.grad.strides, writeable=False)
+        out._backward = _backward
+        return out
     # end of movement operations
 
 
@@ -282,7 +292,8 @@ class Tensor():
             max_value, 
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
-            op="max"
+            op="max",
+            name=f"{self.name}.max()"
         )
 
         def _backward():

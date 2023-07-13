@@ -263,10 +263,10 @@ def test_max_with_axis_forward_pass():
 
 def test_max_with_axis_backward_pass():
     a = Tensor.random((3,3,28,28))
-    b = a.max(2)
+    b = a.max(-1).max(-1)
     b.backward()
     torch_a = torch.tensor(a.data, requires_grad=True)
-    torch_b = torch_a.max(2)[0]
+    torch_b = torch_a.max(-1)[0].max(-1)[0]
     torch_b.backward(torch.ones_like(torch_b))
     assert np.all(abs(a.grad - torch_a.grad.numpy()) < 0.00000001)
 
