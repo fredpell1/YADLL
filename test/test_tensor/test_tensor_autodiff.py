@@ -198,11 +198,21 @@ def test_sum_backward_pass():
 
 def test_sum_with_axis_forward_pass():
     a = Tensor.random((3,3,28,28))
+    b = a.sum(1)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.sum(1)
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001)
+
+
+def test_sum_with_multiple_axis_forward_pass():
+    a = Tensor.random((3,3,28,28))
     b = a.sum((1,3))
     torch_a = torch.tensor(a.data)
     torch_b = torch_a.sum((1,3))
     assert b.shape == torch_b.shape, "shape not equal"
     assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001)
+
 
 def test_sum_with_axis_backward_pass():
     a = Tensor.random((3,3,28,28))
@@ -223,12 +233,21 @@ def test_mean_backward_pass():
     assert np.all(a.grad == c.grad.numpy())
 
 def test_mean_with_axis_forward_pass():
+    a = Tensor.random((1,1,10,10))
+    b = a.mean(2)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.mean(2)
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.0000001)
+
+def test_mean_with_multiple_axis_forward_pass():
     a = Tensor.random((3,3,28,28))
     b = a.mean((1,3))
-    torch_a = torch.tensor(a.data)
+    torch_a = torch.tensor(a.data, requires_grad=True)
     torch_b = torch_a.mean((1,3))
     assert b.shape == torch_b.shape, "shape not equal"
-    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001)
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.0000001)
+
 
 def test_mean_with_axis_backward_pass():
     a = Tensor.random((3,3,28,28))

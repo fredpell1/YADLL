@@ -281,6 +281,10 @@ class Tensor():
 
     def mean(self, dim=None) -> Tensor:
         out = self.sum(dim)
+        if isinstance(dim, int):
+            if dim == -1:
+                dim = len(out.shape)
+            dim = (dim,)
         div = Tensor(np.array(np.prod(out.shape), dtype=np.float32), True).expand((s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
         return out / div
 
