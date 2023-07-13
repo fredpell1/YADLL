@@ -174,8 +174,7 @@ class Tensor():
         output._backward = _backward
         return output
 
-    def __truediv__(self, other: Union[int,float]) ->Tensor:
-        assert isinstance(other, (int,float))
+    def __truediv__(self, other: Union[int,float, Tensor]) ->Tensor:
         return self * other ** (-1)
     
 
@@ -207,7 +206,7 @@ class Tensor():
             True,
             parent = (self,),
             op = "pad",
-            name = self.name
+            name = f"{self.name}.pad()"
         )
         def _backward():
             slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
@@ -221,7 +220,7 @@ class Tensor():
             True,
             (self,),
             "reshape",
-            self.name
+            f"{self.name}.reshape()"
         )
         def _backward():
             self.grad += np.reshape(output.grad, self.shape) 
@@ -252,41 +251,63 @@ class Tensor():
         return self.reshape((new_shape))
     
     def stride(self,strides:tuple, stride: int=1):
-        return Tensor(view_as_windows(self.data, strides,stride), True, (self,))
-
+        #backward pass is currently broken
+        out = Tensor(
+            view_as_windows(np.copy(self.data), strides, stride),
+            True,
+            (self,),
+            "stride",
+            f"{self.name}.stride()"
+        )
+        def _backward():
+            self.grad += np.lib.stride_tricks.as_strided(out.grad, self.shape, self.grad.strides, writeable=False)
+        out._backward = _backward
+        return out
     # end of movement operations
 
 
-    def sum(self) -> Tensor:
+    def sum(self, dim=None) -> Tensor:
         output = Tensor(
-            np.sum(self.data),
+            np.sum(self.data, axis=dim),
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
             op="sum",
             name=f"sum({self.name})"
         )
         def _backward():
-            assert output.grad.shape == ()
-            self.grad += np.full(self.data.shape, output.grad.item())
+            self.grad += np.expand_dims(output.grad, dim if dim else 0)
         output._backward = _backward
         return output
 
-    def mean(self) -> Tensor:
-        return self.sum() / self.data.size
+    def mean(self, dim=None) -> Tensor:
+        out = self.sum(dim)
+        if isinstance(dim, int):
+            if dim == -1:
+                dim = len(out.shape)
+            dim = (dim,)
+        div = Tensor(np.array(np.prod(out.shape), dtype=np.float32), True).expand((s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
+        return out / div
 
-    def max(self) -> Tensor:
-        max_locations = np.argwhere(self.data == np.max(self.data))  
+    def max(self, dim: int = None) -> Tensor:
+        # NOTE: max() != max(axis=0)
+        max_locations = np.argmax(self.data,axis=dim)
+        max_value = np.take_along_axis(self.data,np.expand_dims(max_locations,axis=dim), axis=dim).squeeze(dim) if dim else self.data[np.unravel_index(max_locations, self.shape)]
         output = Tensor(
-            self.data[max_locations[0,0], max_locations[0,1]],
+            max_value, 
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
-            op="max"
+            op="max",
+            name=f"{self.name}.max()"
         )
+
         def _backward():
-            grad_matrix = np.zeros(self.data.shape)
-            div = np.sum(max_locations)
-            grad_matrix[max_locations[:,0], max_locations[:,1]] = 1/div
-            self.grad += grad_matrix * output.grad
+            grad_matrix = np.zeros(self.shape)
+            if dim:
+                np.put_along_axis(grad_matrix, np.expand_dims(max_locations, axis=dim), 1,axis=dim)
+            else:
+                grad_matrix = np.where(self.data == max_value, 1, 0)
+                grad_matrix = grad_matrix / np.sum(grad_matrix)
+            self.grad += grad_matrix * np.expand_dims(output.grad, axis=dim if dim else 0)
         output._backward = _backward
         return output
 

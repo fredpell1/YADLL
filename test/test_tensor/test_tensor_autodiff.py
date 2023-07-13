@@ -196,6 +196,33 @@ def test_sum_backward_pass():
     d.backward()
     assert np.all(a.grad == c.grad.numpy())
 
+def test_sum_with_axis_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.sum(1)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.sum(1)
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001)
+
+
+def test_sum_with_multiple_axis_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.sum((1,3))
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.sum((1,3))
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001)
+
+
+def test_sum_with_axis_backward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.sum((1,3))
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.sum((1,3))
+    b.backward()
+    torch_b.backward(torch.ones_like(torch_b))
+    assert np.all(abs(a.grad - torch_a.grad.detach().numpy()) < 0.00000001)
+
 def test_mean_backward_pass():
     a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
     b = a.mean()
@@ -205,6 +232,37 @@ def test_mean_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
 
+def test_mean_with_axis_forward_pass():
+    a = Tensor.random((1,1,10,10))
+    b = a.mean(2)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.mean(2)
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.0000001)
+
+def test_mean_with_multiple_axis_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.mean((1,3))
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.mean((1,3))
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.0000001)
+
+
+def test_mean_with_axis_backward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.mean((1,3))
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.mean((1,3))
+    b.backward()
+    torch_b.backward(torch.ones_like(torch_b))
+    assert np.all(abs(a.grad - torch_a.grad.numpy()) < 0.00000001)
+
+def test_max_forward_pass():
+    a = Tensor.random((2,3,4,4))
+    torch_a = torch.tensor(a.data)
+    assert a.max().data == torch_a.max().detach().numpy()
+
 def test_max_backward_pass():
     a = Tensor(np.array([[1.0,2],[2,1]]), requires_grad=True)
     b = a.max() * 3
@@ -213,6 +271,23 @@ def test_max_backward_pass():
     d = c.max() * 3
     d.backward()
     assert np.all(a.grad == c.grad.numpy())
+
+def test_max_with_axis_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.max(2)
+    torch_a = torch.tensor(a.data, dtype=torch.float64)
+    torch_b = torch_a.max(2)[0]
+    assert b.shape == torch_b.shape, "shape not equal"
+    assert np.all(abs(b.data - torch_b.detach().numpy()) < 0.00000001), "result not equal"
+
+def test_max_with_axis_backward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.max(-1).max(-1)
+    b.backward()
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.max(-1)[0].max(-1)[0]
+    torch_b.backward(torch.ones_like(torch_b))
+    assert np.all(abs(a.grad - torch_a.grad.numpy()) < 0.00000001)
 
 def test_relu_backward_pass():
     a = Tensor(np.array([[-1.0,2], [-3,2]]), requires_grad=True)
