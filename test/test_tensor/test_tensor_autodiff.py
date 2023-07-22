@@ -232,6 +232,23 @@ def test_mean_backward_pass():
     d.backward(torch.ones_like(d))
     assert np.all(a.grad == c.grad.numpy())
 
+def test_mean_with_keepdim():
+    a = Tensor.random((3,3,28,28))
+    b = a.mean(2, keepdim=True)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.mean(2, keepdim=True)
+    assert np.all(abs(b.data - torch_b.numpy()) < 1e-7)
+
+def test_mean_with_keepdim_backward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.mean((1,3), keepdim=True)
+    torch_a = torch.tensor(a.data, requires_grad=True)
+    torch_b = torch_a.mean((1,3), keepdim=True)
+    b.backward()
+    torch_b.retain_grad()
+    torch_b.backward(torch.ones_like(torch_b))
+    assert np.all(abs(b.grad - torch_b.grad.detach().numpy()) < 1e-7)
+
 def test_mean_with_axis_forward_pass():
     a = Tensor.random((1,1,10,10))
     b = a.mean(2)
@@ -257,6 +274,23 @@ def test_mean_with_axis_backward_pass():
     b.backward()
     torch_b.backward(torch.ones_like(torch_b))
     assert np.all(abs(a.grad - torch_a.grad.numpy()) < 0.00000001)
+
+def test_var_no_dim_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.var()
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.var(unbiased=False)
+    assert b.shape == torch_b.shape, "shapes not equal"
+    assert np.all(abs(b.data - torch_b.numpy()) < 1e-8)
+
+def test_var_dim_forward_pass():
+    a = Tensor.random((3,3,28,28))
+    b = a.var(2)
+    torch_a = torch.tensor(a.data)
+    torch_b = torch_a.var(2,unbiased=False)
+    assert b.shape == torch_b.shape, "shapes not equal"
+    assert np.all(abs(b.data - torch_b.numpy()) < 1e-7)
+
 
 def test_max_forward_pass():
     a = Tensor.random((2,3,4,4))

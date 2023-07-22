@@ -266,27 +266,30 @@ class Tensor():
     # end of movement operations
 
 
-    def sum(self, dim=None) -> Tensor:
+    def sum(self, dim=None, keepdim=False) -> Tensor:
         output = Tensor(
-            np.sum(self.data, axis=dim),
+            np.sum(self.data, axis=dim, keepdims=keepdim),
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
             op="sum",
             name=f"sum({self.name})"
         )
         def _backward():
-            self.grad += np.expand_dims(output.grad, dim if dim else 0)
+            self.grad += np.expand_dims(output.grad, dim if dim and not keepdim else [])
         output._backward = _backward
         return output
 
-    def mean(self, dim=None) -> Tensor:
-        out = self.sum(dim)
+    def mean(self, dim=None, keepdim=False) -> Tensor:
+        out = self.sum(dim, keepdim=keepdim)
         if isinstance(dim, int):
             if dim == -1:
                 dim = len(out.shape)
             dim = (dim,)
-        div = Tensor(np.array(np.prod(out.shape), dtype=np.float32), True).expand((s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
+        div = Tensor(np.array(np.prod([s for i,s in enumerate(self.shape) if i in dim]), dtype=np.float32), True).expand((s if i not in dim else 1 for i,s in enumerate(self.shape)) if keepdim else (s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
         return out / div
+
+    def var(self,dim=None)->Tensor:
+        return ((self - self.mean(dim, True)) ** 2).mean(dim)
 
     def max(self, dim: int = None) -> Tensor:
         # NOTE: max() != max(axis=0)
@@ -378,6 +381,14 @@ class Tensor():
             requires_grad,
             op="random",
             name=name
+        )
+    @staticmethod
+    def ones(dim: tuple, requires_grad: bool = True, name='')->Tensor:
+        return Tensor(
+            np.ones(dim, np.float32),
+            requires_grad,
+            op='ones',
+            name = name
         )
     
     @staticmethod
