@@ -32,7 +32,7 @@ class Tensor():
         self.init_name = name
 
     def __repr__(self):
-        return f"Tensor({self.data})"
+        return f"Tensor({self.data}, {self.shape=})"
 
     def __getitem__(self,val):
         output = Tensor(
@@ -133,8 +133,12 @@ class Tensor():
             if isinstance(other, (int,float)):
                 self.grad += other * output.grad
             if isinstance(other, Tensor):
-                self.grad += other.data * output.grad
-                other.grad += self.data * output.grad
+                
+                self.grad += other.data * output.grad if self.shape == output.shape else \
+                    (other.data * output.grad).sum(shape_to_axis(self.shape,other.shape), keepdims=True)
+                
+                other.grad += (self.data * output.grad) if other.shape == output.shape else \
+                    (self.data * output.grad).sum(axis=shape_to_axis(self.shape, other.shape), keepdims=True)
         
         output._backward = _backward
         return output
