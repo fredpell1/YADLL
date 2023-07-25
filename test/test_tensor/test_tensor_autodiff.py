@@ -285,9 +285,9 @@ def test_var_no_dim_forward_pass():
 
 def test_var_dim_forward_pass():
     a = Tensor.random((3,3,28,28))
-    b = a.var(2)
+    b = a.var((0,2,3))
     torch_a = torch.tensor(a.data)
-    torch_b = torch_a.var(2,unbiased=False)
+    torch_b = torch_a.var((0,2,3),unbiased=False)
     assert b.shape == torch_b.shape, "shapes not equal"
     assert np.all(abs(b.data - torch_b.numpy()) < 1e-7)
 

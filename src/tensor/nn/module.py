@@ -8,6 +8,7 @@ from typing import Any, List, Generator
 class Module:
     def __init__(self) -> None:
         self.params: List[Tensor] = []
+        self.eval_mode = False
 
     def parameters(self) -> Generator[Tensor, Any, Any]:
         for p in self.params:
@@ -19,6 +20,11 @@ class Module:
     def __call__(self,x:Tensor, *args: Any, **kwds: Any) -> Any:
         return self.forward(x)
 
+    def train(self):
+        self.eval_mode = False
+    
+    def eval(self):
+        self.eval_mode = True
 
 class Linear(Module):
     def __init__(self, in_features: int, out_features: int, bias: bool = True) -> None:

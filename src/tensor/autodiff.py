@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Union, Tuple
 import numpy as np
-from skimage.util.shape import view_as_blocks, view_as_windows
+from skimage.util.shape import view_as_windows
 
 def add_dimensions(old_shape, new_shape):
     # I apologize for anyone reading these one liners
@@ -283,17 +283,18 @@ class Tensor():
         output._backward = _backward
         return output
 
-    def mean(self, dim=None, keepdim=False) -> Tensor:
+    def mean(self, dim=None, keepdim=False, unbiased=False) -> Tensor:
         out = self.sum(dim, keepdim=keepdim)
         if isinstance(dim, int):
             if dim == -1:
                 dim = len(out.shape)
             dim = (dim,)
-        div = Tensor(np.array(np.prod([s for i,s in enumerate(self.shape) if i in dim]), dtype=np.float32), True).expand((s if i not in dim else 1 for i,s in enumerate(self.shape)) if keepdim else (s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
+        correction = 1.0 if unbiased else 0.0
+        div = Tensor(np.array(np.prod([s for i,s in enumerate(self.shape) if i in dim]), dtype=np.float64) - correction, True).expand((s if i not in dim else 1 for i,s in enumerate(self.shape)) if keepdim else (s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
         return out / div
 
-    def var(self,dim=None)->Tensor:
-        return ((self - self.mean(dim, True)) ** 2).mean(dim)
+    def var(self,dim=None, unbiased=False)->Tensor:
+        return ((self - self.mean(dim, True)) ** 2).mean(dim, unbiased=unbiased)
 
     def max(self, dim: int = None) -> Tensor:
         # NOTE: max() != max(axis=0)
