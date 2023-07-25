@@ -1,8 +1,7 @@
 from ..autodiff import *
 from .module import Module
-import numpy as np
 
-class BatchNorm2d(Module):
+class BatchNorm(Module):
     def __init__(
         self,
         num_features: int, 
@@ -25,19 +24,35 @@ class BatchNorm2d(Module):
         self.running_mean = Tensor.zeros((num_features,), False, 'running_mean') if track_running_stats else None
         self.running_var = Tensor.ones((num_features,), False, 'running_var') if track_running_stats else None
 
-    def forward(self, x: Tensor) -> Tensor:
-        assert len(x.shape) == 4, "BatchNorm2d only takes batched inputs"
-        current_mean = x.mean((0,2,3))
-        current_var = x.var((0,2,3), unbiased=False)
-        mean = current_mean.reshape((1,self.num_features, 1,1))
-        var = current_var.reshape((1,self.num_features, 1, 1))
+    def norm(self, x, axis):
+        current_mean = x.mean(axis)
+        current_var = x.var(axis, unbiased=False)
+        shape = (1,self.num_features) + tuple(1 for i in range(len(x.shape) - 2))
+        mean = current_mean.reshape(shape)
+        var = current_var.reshape(shape)
         if self.track_running_stats:
             if self.eval_mode:
-                mean = self.running_mean.reshape((1,self.num_features,1,1))
-                var = self.running_var.reshape((1,self.num_features,1,1))
+                mean = self.running_mean.reshape(shape)
+                var = self.running_var.reshape(shape)
             else:
                 self.running_mean = (1.0-self.momentum) * self.running_mean + self.momentum * current_mean
-                self.running_var = (1.0 - self.momentum) * self.running_var + self.momentum * x.var((0,2,3), unbiased=True)
+                self.running_var = (1.0 - self.momentum) * self.running_var + self.momentum * x.var(axis, unbiased=True)
         gamma = self.gamma if self.affine else Tensor.ones((self.num_features,))
         beta = self.beta if self.affine else Tensor.zeros((self.num_features,))
-        return gamma.reshape((1,self.num_features,1,1)) * (x- mean) / (var + self.eps) ** (1/2) + beta.reshape((1,self.num_features,1,1))
+        return gamma.reshape(shape) * (x- mean) / (var + self.eps) ** (1/2) + beta.reshape(shape)
+
+class BatchNorm1d(BatchNorm):
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 3, "BatchNorm1d only takes batched inputs"
+        return self.norm(x, (0,2))
+
+class BatchNorm2d(BatchNorm):
+        
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 4, "BatchNorm2d only takes batched inputs"
+        return self.norm(x, (0,2,3))
+    
+class BatchNorm3d(BatchNorm):
+    def forward(self, x: Tensor) -> Tensor:
+        assert len(x.shape) == 5, "BatchNorm3d only takes batched inputs"
+        return self.norm(x, (0,2,3,4))
