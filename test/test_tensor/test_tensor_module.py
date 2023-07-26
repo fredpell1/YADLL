@@ -1,5 +1,5 @@
 # from src.tensor.nn.module import *
-from src.tensor.nn import *
+from yadll.tensor.nn import *
 import torch
 import numpy as np
 import pytest

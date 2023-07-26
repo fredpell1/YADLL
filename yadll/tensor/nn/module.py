@@ -1,5 +1,5 @@
-from src.tensor.autodiff import Tensor
-from src.tensor.nn.functional import Tensor
+from yadll.tensor.autodiff import Tensor
+from yadll.tensor.nn.functional import Tensor
 from ..autodiff import *
 from .functional import *
 from typing import Any, List, Generator
