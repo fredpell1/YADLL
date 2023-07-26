@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Union, Tuple
 import numpy as np
-from skimage.util.shape import view_as_blocks, view_as_windows
+from skimage.util.shape import view_as_windows
 
 def add_dimensions(old_shape, new_shape):
     # I apologize for anyone reading these one liners
@@ -32,7 +32,7 @@ class Tensor():
         self.init_name = name
 
     def __repr__(self):
-        return f"Tensor({self.data})"
+        return f"Tensor({self.data}, {self.shape=})"
 
     def __getitem__(self,val):
         output = Tensor(
@@ -133,8 +133,11 @@ class Tensor():
             if isinstance(other, (int,float)):
                 self.grad += other * output.grad
             if isinstance(other, Tensor):
-                self.grad += other.data * output.grad
-                other.grad += self.data * output.grad
+                self.grad += (other.data * output.grad) if self.shape == output.shape else \
+                    (other.data * output.grad).sum(shape_to_axis(self.shape,other.shape), keepdims=True)
+
+                other.grad += (self.data * output.grad) if other.shape == output.shape else \
+                    (self.data * output.grad).sum(axis=shape_to_axis(self.shape, other.shape), keepdims=True)
         
         output._backward = _backward
         return output
@@ -266,27 +269,31 @@ class Tensor():
     # end of movement operations
 
 
-    def sum(self, dim=None) -> Tensor:
+    def sum(self, dim=None, keepdim=False) -> Tensor:
         output = Tensor(
-            np.sum(self.data, axis=dim),
+            np.sum(self.data, axis=dim, keepdims=keepdim),
             requires_grad=True if self.requires_grad else False,
             parent = (self,),
             op="sum",
             name=f"sum({self.name})"
         )
         def _backward():
-            self.grad += np.expand_dims(output.grad, dim if dim else 0)
+            self.grad += np.expand_dims(output.grad, dim if dim and not keepdim else [])
         output._backward = _backward
         return output
 
-    def mean(self, dim=None) -> Tensor:
-        out = self.sum(dim)
+    def mean(self, dim=None, keepdim=False, unbiased=False) -> Tensor:
+        out = self.sum(dim, keepdim=keepdim)
         if isinstance(dim, int):
             if dim == -1:
                 dim = len(out.shape)
             dim = (dim,)
-        div = Tensor(np.array(np.prod(out.shape), dtype=np.float32), True).expand((s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
+        correction = 1.0 if unbiased else 0.0
+        div = Tensor(np.array(np.prod([s for i,s in enumerate(self.shape) if i in dim]), dtype=np.float64) - correction, True).expand((s if i not in dim else 1 for i,s in enumerate(self.shape)) if keepdim else (s for i,s in enumerate(self.shape) if i not in dim)) if dim else self.data.size
         return out / div
+
+    def var(self,dim=None, unbiased=False)->Tensor:
+        return ((self - self.mean(dim, True)) ** 2).mean(dim, unbiased=unbiased)
 
     def max(self, dim: int = None) -> Tensor:
         # NOTE: max() != max(axis=0)
@@ -378,6 +385,14 @@ class Tensor():
             requires_grad,
             op="random",
             name=name
+        )
+    @staticmethod
+    def ones(dim: tuple, requires_grad: bool = True, name='')->Tensor:
+        return Tensor(
+            np.ones(dim),
+            requires_grad,
+            op='ones',
+            name = name
         )
     
     @staticmethod

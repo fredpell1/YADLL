@@ -1,4 +1,5 @@
-from src.tensor.nn.module import *
+# from src.tensor.nn.module import *
+from src.tensor.nn import *
 import torch
 import numpy as np
 import pytest
@@ -401,3 +402,215 @@ def test_avgpool3d_with_padding_and_stride_forward_pass():
     assert out.shape == torch_out.shape, "shape not equal"
     assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
 
+def test_batchnorm2d_no_tracking_affine_forward_pass():
+    x = Tensor.random((3,3,16,16))
+    norm = BatchNorm2d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm2d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x)
+    torch_out = torch_norm(torch_x)
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7)
+
+def test_batchnorm1d_no_tracking_affine_forward_pass():
+    x = Tensor.random((3,3,16))
+    norm = BatchNorm1d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm1d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x)
+    torch_out = torch_norm(torch_x)
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7)
+    
+def test_batchnorm1d_no_tracking_affine_backward_pass():
+    x = Tensor.random((3,3,16))
+    norm = BatchNorm1d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm1d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x).sum()
+    torch_out = torch_norm(torch_x).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+    
+
+def test_batchnorm2d_no_tracking_affine_backward_pass():
+    x = Tensor.random((3,3,16,16))
+    norm = BatchNorm2d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm2d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x).sum()
+    torch_out = torch_norm(torch_x).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+def test_batchnorm3d_no_tracking_affine_forward_pass():
+    x = Tensor.random((3,3,16,16,16))
+    norm = BatchNorm3d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm3d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x)
+    torch_out = torch_norm(torch_x)
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7)
+
+
+
+def test_batchnorm3d_no_tracking_affine_backward_pass():
+    x = Tensor.random((3,3,16,16,16))
+    norm = BatchNorm3d(3, track_running_stats=False)
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.BatchNorm3d(3, track_running_stats=False)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data))
+    out = norm(x).sum()
+    torch_out = torch_norm(torch_x).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+
+def test_batchnorm2d_tracking_forward_pass():
+    x = Tensor.random((3,3,16,16))
+    norm = BatchNorm2d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm2d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+
+    assert np.all(abs(norm.running_mean.data - torch_norm.running_mean.detach().numpy()) < 1e-7), "running mean incorrect"
+    assert np.all(abs(norm.running_var.data - torch_norm.running_var.detach().numpy()) < 1e-7), "running var incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7), "output incorrect"
+
+def test_batchnorm3d_tracking_forward_pass():
+    x = Tensor.random((3,3,16,16,16))
+    norm = BatchNorm3d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm3d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+
+    assert np.all(abs(norm.running_mean.data - torch_norm.running_mean.detach().numpy()) < 1e-7), "running mean incorrect"
+    assert np.all(abs(norm.running_var.data - torch_norm.running_var.detach().numpy()) < 1e-7), "running var incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7), "output incorrect"
+
+def test_batchnorm1d_tracking_forward_pass():
+    x = Tensor.random((3,3,16))
+    norm = BatchNorm1d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm1d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+
+    assert np.all(abs(norm.running_mean.data - torch_norm.running_mean.detach().numpy()) < 1e-7), "running mean incorrect"
+    assert np.all(abs(norm.running_var.data - torch_norm.running_var.detach().numpy()) < 1e-7), "running var incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-7), "output incorrect"
+    
+def test_batchnorm2d_tracking_backward_pass():
+    x = Tensor.random((3,3,16,16))
+    norm = BatchNorm2d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm2d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+    out.sum().backward()
+    torch_out.sum().backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+def test_batchnorm3d_tracking_backward_pass():
+    x = Tensor.random((3,3,16,16,16))
+    norm = BatchNorm3d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm3d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+    out.sum().backward()
+    torch_out.sum().backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+def test_batchnorm1d_tracking_backward_pass():
+    x = Tensor.random((3,3,16))
+    norm = BatchNorm1d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm1d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+    out.sum().backward()
+    torch_out.sum().backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+
+
+def test_batchnorm2d_eval_mode():
+    x = Tensor.random((3,3,16,16))
+    norm = BatchNorm2d(3, track_running_stats=True)
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.BatchNorm2d(3, track_running_stats=True, dtype=torch.float64)
+    torch_norm.weight = torch.nn.Parameter(torch.tensor(norm.gamma.data, dtype=torch.float64))
+    torch_norm.bias = torch.nn.Parameter(torch.tensor(norm.beta.data, dtype=torch.float64))
+    for i in range(3):
+        out = norm(x ** i + i)
+        torch_out = torch_norm(torch_x ** i + i)
+    norm.eval()
+    torch_norm.eval()
+    out = norm(x ** 2 + 12)
+    torch_out = torch_norm(torch_x ** 2 + 12)
+    assert np.all(abs(norm.running_mean.data - torch_norm.running_mean.detach().numpy()) < 1e-7), "running mean incorrect"
+    assert np.all(abs(norm.running_var.data - torch_norm.running_var.detach().numpy()) < 1e-7), "running var incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-6), "output incorrect"
+
+def test_layernorm_forward_pass():
+    x = Tensor.random((20,5,10,10))
+    norm = LayerNorm((5,10,10))
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.LayerNorm((5,10,10), dtype=torch.float64)
+    out = norm(x)
+    torch_out = torch_norm(torch_x)
+    assert out.shape == torch_out.shape, "shape incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-8), "output incorrect"
+
+def test_layernorm_backward_pass():
+    x = Tensor.random((20,5,10,10))
+    norm = LayerNorm((10,10,))
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.LayerNorm((10,10,), dtype=torch.float64)
+    out = norm(x).sum()
+    torch_out = torch_norm(torch_x).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+    
