@@ -56,3 +56,33 @@ class BatchNorm3d(BatchNorm):
     def forward(self, x: Tensor) -> Tensor:
         assert len(x.shape) == 5, "BatchNorm3d only takes batched inputs"
         return self.norm(x, (0,2,3,4))
+    
+
+class LayerNorm(Module):
+
+    def __init__(
+            self,
+            normalized_shape: tuple[int],
+            eps: float = 1e-5,
+            elementwise_affine : bool = True 
+            ) -> None:
+        super().__init__()
+        self.normalized_shape = normalized_shape
+        self.eps = eps
+        self.affine = elementwise_affine
+        
+        self.gamma = Tensor.ones(normalized_shape, name="gamma")
+        self.beta = Tensor.zeros(normalized_shape, name="beta")
+        if elementwise_affine:
+            self.params.append(self.gamma)
+            self.params.append(self.beta)
+        
+
+    def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
+        axis = tuple(reversed([len(x.shape) - i -1 for i in range(len(self.normalized_shape))]))
+        shape = tuple(s if i not in axis else 1 for i,s in enumerate(x.shape))
+        param_shape = (1,)*(len(x.shape) - len(self.normalized_shape)) + self.normalized_shape
+        mean = x.mean(axis).reshape(shape)
+        var = x.var(axis).reshape(shape)
+        return self.gamma.reshape(param_shape) * (x - mean) / (var + self.eps) ** (1/2) + self.beta.reshape(param_shape)
+        

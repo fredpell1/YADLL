@@ -590,3 +590,27 @@ def test_batchnorm2d_eval_mode():
     assert np.all(abs(norm.running_mean.data - torch_norm.running_mean.detach().numpy()) < 1e-7), "running mean incorrect"
     assert np.all(abs(norm.running_var.data - torch_norm.running_var.detach().numpy()) < 1e-7), "running var incorrect"
     assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-6), "output incorrect"
+
+def test_layernorm_forward_pass():
+    x = Tensor.random((20,5,10,10))
+    norm = LayerNorm((5,10,10))
+    torch_x = torch.tensor(x.data)
+    torch_norm = torch.nn.LayerNorm((5,10,10), dtype=torch.float64)
+    out = norm(x)
+    torch_out = torch_norm(torch_x)
+    assert out.shape == torch_out.shape, "shape incorrect"
+    assert np.all(abs(out.data - torch_out.detach().numpy()) < 1e-8), "output incorrect"
+
+def test_layernorm_backward_pass():
+    x = Tensor.random((20,5,10,10))
+    norm = LayerNorm((10,10,))
+    torch_x = torch.tensor(x.data, dtype=torch.float64)
+    torch_norm = torch.nn.LayerNorm((10,10,), dtype=torch.float64)
+    out = norm(x).sum()
+    torch_out = torch_norm(torch_x).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(abs(norm.beta.grad.data - torch_norm.bias.grad.detach().numpy()) < 1e-7), "bias grad incorrect"
+    assert np.all(abs(norm.gamma.grad.data - torch_norm.weight.grad.detach().numpy()) < 1e-7), "weight grad incorrect"
+
+    

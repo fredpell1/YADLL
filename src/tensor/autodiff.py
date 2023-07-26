@@ -133,10 +133,9 @@ class Tensor():
             if isinstance(other, (int,float)):
                 self.grad += other * output.grad
             if isinstance(other, Tensor):
-                
-                self.grad += other.data * output.grad if self.shape == output.shape else \
+                self.grad += (other.data * output.grad) if self.shape == output.shape else \
                     (other.data * output.grad).sum(shape_to_axis(self.shape,other.shape), keepdims=True)
-                
+
                 other.grad += (self.data * output.grad) if other.shape == output.shape else \
                     (self.data * output.grad).sum(axis=shape_to_axis(self.shape, other.shape), keepdims=True)
         
@@ -390,7 +389,7 @@ class Tensor():
     @staticmethod
     def ones(dim: tuple, requires_grad: bool = True, name='')->Tensor:
         return Tensor(
-            np.ones(dim, np.float32),
+            np.ones(dim),
             requires_grad,
             op='ones',
             name = name
