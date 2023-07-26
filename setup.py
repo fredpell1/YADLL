@@ -7,7 +7,7 @@ setup(
     version="0.1",
     author="Frederic Pelletier",
     license="MIT",
-    packages=['src', 'src.nn'],
+    packages=['src.tensor', 'src.tensor.nn'],
     install_requires=['numpy', 'scikit-image'],
     python_requires=">=3.9",
     extras_require={
