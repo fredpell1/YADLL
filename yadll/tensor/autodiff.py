@@ -265,9 +265,7 @@ class Tensor():
         def _backward():
             index_array = np.lib.stride_tricks.as_strided(np.arange(self.data.size), size, stride) #reproduce the striding so we can track which index was used
             indices = {np.unravel_index(i, self.shape): np.count_nonzero(i == index_array.flatten()) for i in range(self.data.size)}
-            self.grad = np.lib.stride_tricks.as_strided(np.copy(self.grad), size, stride, )
-            self.grad += out.grad
-            self.grad = np.lib.stride_tricks.as_strided(np.copy(self.grad), self.shape, self.data.strides, )
+            self.grad += np.lib.stride_tricks.as_strided(out.data, self.shape, self.data.strides) * np.lib.stride_tricks.as_strided(out.grad / out.data, self.shape, self.data.strides)
             for key,value in indices.items():
                 self.grad[key] *= value
 
@@ -276,6 +274,8 @@ class Tensor():
         return out
 
     def rolling_window(self,strides:tuple, stride: int=1):
+        #not sure if this belongs in the tensor class or elsewhere
+        #should be implemented with our own as_strided but its currently way too slow
         out = Tensor(
             view_as_windows(np.copy(self.data), strides, stride),
             True,

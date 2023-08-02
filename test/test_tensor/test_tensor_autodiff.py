@@ -459,9 +459,9 @@ def test_as_strided_backward_pass():
     new_shape = (1,1,3,3,1,1,3,3)
     strides = (100,100,20,4,100,100,20,4)
     torch_strides = tuple(s//4 for s in strides) #needed because of the different mechanism numpy and torch use to store data
-    out = x.as_strided(new_shape, strides).mean()
-    torch_out = torch_x.as_strided(new_shape, torch_strides).mean()
+    out = (x.as_strided(new_shape, strides) ** 2).mean() * 10
+    torch_out = (torch_x.as_strided(new_shape, torch_strides) ** 2).mean() * 10
     out.backward()
     torch_out.backward()
-    assert(np.all(x.grad == torch_x.grad.detach().numpy()))
+    assert(np.all(abs(x.grad - torch_x.grad.detach().numpy()) < 1e-6))
 
