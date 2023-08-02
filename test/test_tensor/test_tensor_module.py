@@ -307,7 +307,6 @@ def test_maxpool2d_with_padding_and_stride_forward_pass():
     assert out.shape == torch_out.shape, "shape not equal"
     assert np.all(abs(out.data - torch_out.detach().numpy()) < 0.00000001), "result not equal"
     
-@pytest.mark.skip(reason="fails but not criticial because backward through a pool almost never happens")
 def test_maxpool2d_backward_pass():
     x = Tensor.random((1,1,10,10), name="x")
     torch_x = torch.tensor(x.data, requires_grad=True)

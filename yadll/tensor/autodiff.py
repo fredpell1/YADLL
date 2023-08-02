@@ -253,8 +253,29 @@ class Tensor():
         new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(start_dim+1)))
         return self.reshape((new_shape))
     
-    def stride(self,strides:tuple, stride: int=1):
-        #backward pass is currently broken
+    def as_strided(self, size: tuple, stride: tuple):
+        #memory inneficient because of all the copying, should fix
+        out = Tensor(
+            np.lib.stride_tricks.as_strided(self.data, size, stride, ),
+            requires_grad= True if self.requires_grad else False,
+            parent=(self,),
+            op='stride',
+            name = self.name
+        )
+        def _backward():
+            index_array = np.lib.stride_tricks.as_strided(np.arange(self.data.size), size, stride) #reproduce the striding so we can track which index was used
+            indices = {np.unravel_index(i, self.shape): np.count_nonzero(i == index_array.flatten()) for i in range(self.data.size)}
+            self.grad = np.lib.stride_tricks.as_strided(np.copy(self.grad), size, stride, )
+            self.grad += out.grad
+            self.grad = np.lib.stride_tricks.as_strided(np.copy(self.grad), self.shape, self.data.strides, )
+            for key,value in indices.items():
+                self.grad[key] *= value
+
+
+        out._backward = _backward
+        return out
+
+    def rolling_window(self,strides:tuple, stride: int=1):
         out = Tensor(
             view_as_windows(np.copy(self.data), strides, stride),
             True,
@@ -263,7 +284,9 @@ class Tensor():
             f"{self.name}.stride()"
         )
         def _backward():
-            self.grad += np.lib.stride_tricks.as_strided(out.grad, self.shape, self.grad.strides, writeable=False)
+            self.grad = view_as_windows(np.copy(self.grad), strides, stride)
+            self.grad += out.grad
+            self.grad = np.lib.stride_tricks.as_strided(self.grad, self.shape, self.data.strides)
         out._backward = _backward
         return out
     # end of movement operations
@@ -379,9 +402,9 @@ class Tensor():
         return self.transpose(-2,-1)
 
     @staticmethod
-    def random(dim: Tuple, requires_grad : bool = True, name='')->Tensor:
+    def random(dim: Tuple, requires_grad : bool = True, name='', dtype=np.float64)->Tensor:
         return Tensor(
-            np.random.randn(*dim),
+            np.random.randn(*dim).astype(dtype),
             requires_grad,
             op="random",
             name=name
