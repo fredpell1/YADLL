@@ -318,6 +318,8 @@ def test_maxpool2d_backward_pass():
     torch_pooled = torch_pool(torch_x)
     torch_out = torch_pooled.sum()
     torch_out.backward()
+    print(x.grad)
+    print(torch_x.grad)
     assert np.all(abs(x.grad - torch_x.grad.detach().numpy()) < 0.0000001), "result not equal"
     
 def test_maxpool3d_forward_pass():

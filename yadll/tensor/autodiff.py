@@ -212,7 +212,7 @@ class Tensor():
             name = f"{self.name}.pad()"
         )
         def _backward():
-            slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
+            slices = [slice(p[0], -p[1] if p[1] != 0 else output.shape[i], None) for i,p in enumerate(pad)]
             self.grad += output.grad[np.s_[tuple(slices)]]
         output._backward = _backward
         return output        
@@ -265,12 +265,24 @@ class Tensor():
         def _backward():
             index_array = np.lib.stride_tricks.as_strided(np.arange(self.data.size), size, stride) #reproduce the striding so we can track which index was used
             indices = {np.unravel_index(i, self.shape): np.count_nonzero(i == index_array.flatten()) for i in range(self.data.size)}
-            self.grad += np.lib.stride_tricks.as_strided(out.data, self.shape, self.data.strides) * np.lib.stride_tricks.as_strided(out.grad / out.data, self.shape, self.data.strides)
+            self.grad += np.lib.stride_tricks.as_strided(out.data, self.shape, self.data.strides) * np.lib.stride_tricks.as_strided(out.grad / (out.data + 1e-16), self.shape, self.data.strides)
             for key,value in indices.items():
                 self.grad[key] *= value
 
 
         out._backward = _backward
+        return out
+    
+    @staticmethod
+    def cat(tensors: list[Tensor], dim=0)->Tensor:
+        shape = tuple(s if i !=dim else sum([tensor.shape[dim] for tensor in tensors]) for i,s in enumerate(tensors[0].shape))
+        out = Tensor.zeros(shape, name='cat')
+        total_shape = shape[dim]
+        running_shape = 0
+        for t in tensors:
+            pad = tuple((0,0) if i!=dim else (running_shape, total_shape - s - running_shape) for i,s in enumerate(t.shape))
+            out += t.pad(pad)
+            running_shape += t.shape[dim]
         return out
 
     def rolling_window(self,strides:tuple, stride: int=1):

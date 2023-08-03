@@ -7,12 +7,12 @@ def test_getitem_backward_pass():
                     [4,5,6],
                     [7,8,9]]), requires_grad=True)
     y = x[:1,:]
-    z = y.mean() + x[0,0]
+    z = y.mean() + x[0,0] + x[0,0]
     z.backward()
     torch_x = torch.tensor([[1,2,3],
                     [4,5,6],
                     [7,8,9]], dtype=torch.float64, requires_grad=True)
-    torch_y = torch_x[:1, :] + torch_x[0,0]
+    torch_y = torch_x[:1, :] + torch_x[0,0] + torch_x[0,0]
     torch_z = torch_y.mean()
     torch_z.backward()
     assert np.all(x.grad == torch_x.grad.detach().numpy())
@@ -459,9 +459,28 @@ def test_as_strided_backward_pass():
     new_shape = (1,1,3,3,1,1,3,3)
     strides = (100,100,20,4,100,100,20,4)
     torch_strides = tuple(s//4 for s in strides) #needed because of the different mechanism numpy and torch use to store data
-    out = (x.as_strided(new_shape, strides) ** 2).mean() * 10
-    torch_out = (torch_x.as_strided(new_shape, torch_strides) ** 2).mean() * 10
+    out = (x.as_strided(new_shape, strides) ** 2).max() * 10
+    torch_out = (torch_x.as_strided(new_shape, torch_strides) ** 2).max() * 10
     out.backward()
     torch_out.backward()
+    print(x.grad)
+    print(torch_x.grad)
     assert(np.all(abs(x.grad - torch_x.grad.detach().numpy()) < 1e-6))
 
+def test_cat_forward_pass():
+    tensors = [Tensor.random((1,1,5+i,5)) for i in range(3)]
+    big_tensor = Tensor.cat(tensors, 2)
+    torch_tensors = [torch.tensor(tensor.data) for tensor in tensors]
+    torch_big_tensor = torch.cat(torch_tensors, 2)
+    assert big_tensor.shape == torch_big_tensor.shape, "shape is wrong"
+    assert np.all(big_tensor.data == torch_big_tensor.numpy()), "output is wrong"
+
+def test_cat_backward_pass():
+    tensors = [Tensor.random((1,1,5+i,5)) for i in range(3)]
+    big_tensor = Tensor.cat(tensors, 2)
+    torch_tensors = [torch.tensor(tensor.data, requires_grad=True) for tensor in tensors]
+    torch_big_tensor = torch.cat(torch_tensors, 2)
+    out = big_tensor.mean()
+    torch_out = torch_big_tensor.mean()
+    out.backward()
+    torch_out.backward()
