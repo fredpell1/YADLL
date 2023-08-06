@@ -4,7 +4,7 @@ yadll is a deep learning library based on top of [numpy](https://numpy.org/doc/s
 ## Design Philosophy
 yadll is designed with the goal of being the most readable and easy to browse deep learning library. 
 
-Pytorch is great, but if you're wondering how their Conv2d is implemented, you're in for a wild ride across many layers of abstraction and a lot of cpp files. Therefore, the core design principle of yadll is to minimize the number of layers of abstraction. Currently, there are only two layers: the [tensor layer](https://github.com/fredpell1/YADLL/blob/main/yadll/tensor/autodiff.py) containing the code for automatic differentiation and the [neural net (nn)](https://github.com/fredpell1/YADLL/tree/main/yadll/tensor/nn) layer containing modules to build neural networks.
+Pytorch is great, but if you're wondering how their Conv2d is implemented, you're in for a wild ride across many layers of abstraction and a lot of cpp files. Therefore, the core design principle of yadll is to minimize the number of layers of abstraction. Currently, there are only two layers: the [tensor layer](https://github.com/fredpell1/YADLL/blob/main/yadll/autodiff.py) containing the code for automatic differentiation and the [neural net (nn)](https://github.com/fredpell1/YADLL/tree/main/yadll/nn) layer containing modules to build neural networks.
 
 As mentionned above, Pytorch is great! So yadll aims to match as close as possible the torch api so that your yadll code can be migrated to torch and vice versa.
 
@@ -36,7 +36,7 @@ If you wish to contribute to yadll do the following:
 ## Features
 
 ### Tensor operations
-You can do a lot of operations with yadll's [tensors](https://github.com/fredpell1/YADLL/blob/main/yadll/tensor/autodiff.py) similarly to what you can do with pytorch. Every operation also defines its own backward pass, e.g.
+You can do a lot of operations with yadll's [tensors](https://github.com/fredpell1/YADLL/blob/main/yadll/autodiff.py) similarly to what you can do with pytorch. Every operation also defines its own backward pass, e.g.
 ```python
 def exp(self) -> Tensor:
     output = Tensor(
