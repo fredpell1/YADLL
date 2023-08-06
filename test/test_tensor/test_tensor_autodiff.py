@@ -7,12 +7,12 @@ def test_getitem_backward_pass():
                     [4,5,6],
                     [7,8,9]]), requires_grad=True)
     y = x[:1,:]
-    z = y.mean() + x[0,0]
+    z = y.mean() + x[0,0] + x[0,0]
     z.backward()
     torch_x = torch.tensor([[1,2,3],
                     [4,5,6],
                     [7,8,9]], dtype=torch.float64, requires_grad=True)
-    torch_y = torch_x[:1, :] + torch_x[0,0]
+    torch_y = torch_x[:1, :] + torch_x[0,0] + torch_x[0,0]
     torch_z = torch_y.mean()
     torch_z.backward()
     assert np.all(x.grad == torch_x.grad.detach().numpy())
@@ -442,3 +442,55 @@ def test_squeeze_backward_pass():
     assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
     assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
     
+
+def test_cat_forward_pass():
+    tensors = [Tensor.random((1,1,5+i,5)) for i in range(3)]
+    big_tensor = Tensor.cat(tensors, 2)
+    torch_tensors = [torch.tensor(tensor.data) for tensor in tensors]
+    torch_big_tensor = torch.cat(torch_tensors, 2)
+    assert big_tensor.shape == torch_big_tensor.shape, "shape is wrong"
+    assert np.all(big_tensor.data == torch_big_tensor.numpy()), "output is wrong"
+
+def test_cat_backward_pass():
+    tensors = [Tensor.random((1,1,5+i,5)) for i in range(3)]
+    big_tensor = Tensor.cat(tensors, 2)
+    torch_tensors = [torch.tensor(tensor.data, requires_grad=True) for tensor in tensors]
+    torch_big_tensor = torch.cat(torch_tensors, 2)
+    out = big_tensor.mean()
+    torch_out = torch_big_tensor.mean()
+    out.backward()
+    torch_out.backward()
+
+def test_unsqueeze_forward_pass():
+    x = Tensor.random((3,3,2,2))
+    x_unsqueezed = x.unsqueeze(1)
+    assert x_unsqueezed.shape == (3,1,3,2,2), "shape incorrect"
+    assert np.all(x_unsqueezed[:,0,:,:,:].data == x.data), "data incorrect"
+
+def test_unsqueeze_backward_pass():
+    x = Tensor.random((3,3,2,2))
+    torch_x = torch.tensor(x.data, requires_grad=True)
+    out = x.unsqueeze(1).sum()
+    torch_out = torch_x.unsqueeze(1).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy()), "grad incorrect"
+
+def test_unfold_forward_pass():
+    x = Tensor.random((4,4,5,5))
+    torch_x = torch.tensor(x.data)
+    unfolded = x.unfold(1,2,1)
+    torch_unfolded = torch_x.unfold(1,2,1)
+    assert unfolded.shape == torch_unfolded.shape, "shape incorrect"
+    assert np.all(unfolded.data == torch_unfolded.numpy()), "output incorrect"
+
+def test_unfold_backward_pass():
+    x = Tensor.random((4,4,5,5))
+    torch_x = torch.tensor(x.data, requires_grad=True)
+    unfolded = x.unfold(1,2,1)
+    torch_unfolded = torch_x.unfold(1,2,1)
+    out = unfolded.sum()
+    torch_out = torch_unfolded.sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy()), "grad incorrect"

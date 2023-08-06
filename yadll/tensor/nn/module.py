@@ -79,7 +79,7 @@ class Conv1d(Module):
         assert len(x.shape) == 3, "conv1d is currently only supporting batched inputs"
         padded_x = x.pad(((0,0), (0,0), (self.padding,self.padding))) if self.padding > 0 else x
         Lout = self.__compute_out_length(x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
         out = (expanded_view.reshape((Lout, padded_x.shape[0], padded_x.shape[1] * self.kernel_size)) @ self.weight.flatten(1).T).permute((1,2,0))
         return out + self.b.reshape((-1,1)) if self.bias else out
 
@@ -122,7 +122,7 @@ class Conv2d(Module):
         assert len(x.shape) == 4, "conv2d currently only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1]) #could optimize and only compute this once
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
         out = (expanded_view.reshape((Hout,Wout, padded_x.shape[0],padded_x.shape[1] * self.kernel_size[0] * self.kernel_size[1])) @ self.weight.flatten(1).T).permute((2,3,0,1))
         return out + self.b.reshape((-1,1,1)) if self.bias else out
 
@@ -169,7 +169,7 @@ class Conv3d(Module):
         assert len(x.shape) == 5, "conv3d currently only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
         out = (expanded_view.reshape((Dout,Hout,Wout, padded_x.shape[0], padded_x.shape[1] * np.prod(self.kernel_size))) @ self.weight.flatten(1).T).permute((3,4,0,1,2))
         return out + self.b.reshape((-1,1,1,1)) if self.bias else out
     
@@ -197,7 +197,7 @@ class MaxPool1d(Module):
         assert len(x.shape) == 3, "MaxPool1d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding), -np.inf) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Lout = self.__compute_out_length(x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
         return expanded_view.max(-1).reshape((Lout, x.shape[0], x.shape[1])).permute((1,2,0))
 
 class MaxPool2d(Module):
@@ -228,7 +228,7 @@ class MaxPool2d(Module):
         assert len(x.shape) == 4, "MaxPool2d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding), -np.inf) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
         return expanded_view.max(-1).max(-1).reshape((Hout,Wout,x.shape[0], x.shape[1])).permute((2,3,0,1))
 
 class MaxPool3d(Module):
@@ -262,7 +262,7 @@ class MaxPool3d(Module):
         assert len(x.shape) == 5, "MaxPool3d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding), -np.inf) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
         return expanded_view.max(-1).max(-1).max(-1).reshape((Dout, Hout, Wout, x.shape[0], x.shape[1])).permute((3,4,0,1,2))
 
 
@@ -290,7 +290,7 @@ class AvgPool1d(Module):
         assert len(x.shape) == 3, "AvgPool1d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding),0) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Lout = self.__compute_out_length(x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
         return (expanded_view.sum(-1).reshape((Lout, x.shape[0], x.shape[1])) / float(np.prod(self.kernel_size))).permute((1,2,0))
 
 class AvgPool2d(Module):
@@ -320,7 +320,7 @@ class AvgPool2d(Module):
         assert len(x.shape) == 4, "AvgPool2d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding), 0) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
         return (expanded_view.sum((-1,-2)).reshape((Hout,Wout,x.shape[0], x.shape[1])) / float(np.prod(self.kernel_size))).permute((2,3,0,1))
 
 
@@ -355,7 +355,7 @@ class AvgPool3d(Module):
         assert len(x.shape) == 5, "MaxPool3d only supports batched inputs"
         padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
         Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.stride((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
+        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
         return (expanded_view.sum((-3,-2,-1)).reshape((Dout, Hout, Wout, x.shape[0], x.shape[1])) / float(np.prod(self.kernel_size))).permute((3,4,0,1,2))
 
 

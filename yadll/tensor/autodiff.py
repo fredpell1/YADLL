@@ -192,6 +192,7 @@ class Tensor():
             self.name
         )
         def _backward():
+            print(f"{self.grad.shape=}, {output.grad.shape=}, {order=}")
             self.grad += np.transpose(output.grad, np.argsort(order)) #using argsort transpose output.grad back to initial shape
 
         output._backward = _backward
@@ -212,7 +213,7 @@ class Tensor():
             name = f"{self.name}.pad()"
         )
         def _backward():
-            slices = [slice(p[0], -p[1] if p[1] != 0 else self.shape[i], None) for i,p in enumerate(pad)]
+            slices = [slice(p[0], -p[1] if p[1] != 0 else output.shape[i], None) for i,p in enumerate(pad)]
             self.grad += output.grad[np.s_[tuple(slices)]]
         output._backward = _backward
         return output        
@@ -253,8 +254,31 @@ class Tensor():
         new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(start_dim+1)))
         return self.reshape((new_shape))
     
-    def stride(self,strides:tuple, stride: int=1):
-        #backward pass is currently broken
+    @staticmethod
+    def cat(tensors: list[Tensor], dim=0)->Tensor:
+        shape = tuple(s if i !=dim else sum([tensor.shape[dim] for tensor in tensors]) for i,s in enumerate(tensors[0].shape))
+        out = Tensor.zeros(shape, name='cat')
+        total_shape = shape[dim]
+        running_shape = 0
+        for t in tensors:
+            pad = tuple((0,0) if i!=dim else (running_shape, total_shape - s - running_shape) for i,s in enumerate(t.shape))
+            out += t.pad(pad)
+            running_shape += t.shape[dim]
+        return out
+
+    def unfold(self, dimension: int, size: int, step: int) -> Tensor:
+        sizedim = self.shape[dimension]
+        slices = [tuple(slice(None, None, 1) if i!=dimension else slice(j,j+size, 1) for i in range(len(self.shape))) for j in range(0,(sizedim-size) // step + 1, step)]
+        permute_index = tuple(i for i in range(dimension+1)) + tuple(len(self.shape)+1-i for i in reversed(range(dimension,len(self.shape)- dimension))) + (dimension+1,)
+        return self.cat([self[np.s_[s]].unsqueeze(dimension) for s in slices], dimension).permute(permute_index)
+
+    def unsqueeze(self, dim: int) -> Tensor:
+        new_shape = tuple(self.shape[i] for i in range(dim)) + (1,) + tuple(self.shape[i] for i in range(dim, len(self.shape)))
+        return self.reshape(new_shape)
+
+    def rolling_window(self,strides:tuple, stride: int=1):
+        #not sure if this belongs in the tensor class or elsewhere
+        #should be implemented with unfold
         out = Tensor(
             view_as_windows(np.copy(self.data), strides, stride),
             True,
@@ -263,7 +287,9 @@ class Tensor():
             f"{self.name}.stride()"
         )
         def _backward():
-            self.grad += np.lib.stride_tricks.as_strided(out.grad, self.shape, self.grad.strides, writeable=False)
+            self.grad = view_as_windows(np.copy(self.grad), strides, stride)
+            self.grad += out.grad
+            self.grad = np.lib.stride_tricks.as_strided(self.grad, self.shape, self.data.strides)
         out._backward = _backward
         return out
     # end of movement operations
@@ -379,9 +405,9 @@ class Tensor():
         return self.transpose(-2,-1)
 
     @staticmethod
-    def random(dim: Tuple, requires_grad : bool = True, name='')->Tensor:
+    def random(dim: Tuple, requires_grad : bool = True, name='', dtype=np.float64)->Tensor:
         return Tensor(
-            np.random.randn(*dim),
+            np.random.randn(*dim).astype(dtype),
             requires_grad,
             op="random",
             name=name
