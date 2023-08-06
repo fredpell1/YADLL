@@ -65,9 +65,12 @@ yadll supports
 ## Examples
 Here's an example on how to use yadll, as you can see it's almost identical to torch:
 ```python
-from yadll.tensor.autodiff import *
+from yadll.autodiff import *
+from yadll.nn import *
 a = Tensor.random((10,20,20))
 b = Tensor.random((10,20,20))
 c = (a @ b).sum()
 c.backward()
+model = Linear(10,1)
+...
 ```
