@@ -192,6 +192,7 @@ class Tensor():
             self.name
         )
         def _backward():
+            print(f"{self.grad.shape=}, {output.grad.shape=}, {order=}")
             self.grad += np.transpose(output.grad, np.argsort(order)) #using argsort transpose output.grad back to initial shape
 
         output._backward = _backward
@@ -284,6 +285,16 @@ class Tensor():
             out += t.pad(pad)
             running_shape += t.shape[dim]
         return out
+
+    def unfold(self, dimension: int, size: int, step: int) -> Tensor:
+        sizedim = self.shape[dimension]
+        slices = [tuple(slice(None, None, 1) if i!=dimension else slice(j,j+size, 1) for i in range(len(self.shape))) for j in range(0,(sizedim-size) // step + 1, step)]
+        permute_index = tuple(i for i in range(dimension+1)) + tuple(len(self.shape)+1-i for i in reversed(range(dimension,len(self.shape)- dimension))) + (dimension+1,)
+        return self.cat([self[np.s_[s]].unsqueeze(dimension) for s in slices], dimension).permute(permute_index)
+
+    def unsqueeze(self, dim: int) -> Tensor:
+        new_shape = tuple(self.shape[i] for i in range(dim)) + (1,) + tuple(self.shape[i] for i in range(dim, len(self.shape)))
+        return self.reshape(new_shape)
 
     def rolling_window(self,strides:tuple, stride: int=1):
         #not sure if this belongs in the tensor class or elsewhere

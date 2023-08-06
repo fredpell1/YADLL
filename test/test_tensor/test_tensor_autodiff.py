@@ -484,3 +484,37 @@ def test_cat_backward_pass():
     torch_out = torch_big_tensor.mean()
     out.backward()
     torch_out.backward()
+
+def test_unsqueeze_forward_pass():
+    x = Tensor.random((3,3,2,2))
+    x_unsqueezed = x.unsqueeze(1)
+    assert x_unsqueezed.shape == (3,1,3,2,2), "shape incorrect"
+    assert np.all(x_unsqueezed[:,0,:,:,:].data == x.data), "data incorrect"
+
+def test_unsqueeze_backward_pass():
+    x = Tensor.random((3,3,2,2))
+    torch_x = torch.tensor(x.data, requires_grad=True)
+    out = x.unsqueeze(1).sum()
+    torch_out = torch_x.unsqueeze(1).sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy()), "grad incorrect"
+
+def test_unfold_forward_pass():
+    x = Tensor.random((4,4,5,5))
+    torch_x = torch.tensor(x.data)
+    unfolded = x.unfold(1,2,1)
+    torch_unfolded = torch_x.unfold(1,2,1)
+    assert unfolded.shape == torch_unfolded.shape, "shape incorrect"
+    assert np.all(unfolded.data == torch_unfolded.numpy()), "output incorrect"
+
+def test_unfold_backward_pass():
+    x = Tensor.random((4,4,5,5))
+    torch_x = torch.tensor(x.data, requires_grad=True)
+    unfolded = x.unfold(1,2,1)
+    torch_unfolded = torch_x.unfold(1,2,1)
+    out = unfolded.sum()
+    torch_out = torch_unfolded.sum()
+    out.backward()
+    torch_out.backward()
+    assert np.all(x.grad == torch_x.grad.detach().numpy()), "grad incorrect"
