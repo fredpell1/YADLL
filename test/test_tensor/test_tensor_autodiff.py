@@ -442,30 +442,6 @@ def test_squeeze_backward_pass():
     assert np.all(a.grad == torch_a.grad.detach().numpy()), "a.grad incorrect"
     assert np.all(b.grad == torch_b.grad.detach().numpy()), "b.grad incorrect"
     
-def test_as_strided_forward_pass():
-    x = Tensor.random((1,1,5,5), dtype = np.float32)
-    torch_x = torch.from_numpy(x.data)
-    new_shape = (1,1,3,3,1,1,3,3)
-    strides = (100,100,20,4,100,100,20,4)
-    torch_strides = tuple(s//4 for s in strides) #needed because of the different mechanism numpy and torch use to store data
-    out = x.as_strided(new_shape, strides)
-    torch_out = torch_x.as_strided(new_shape, torch_strides)
-    assert np.all(out.shape == torch_out.shape), "shapes not equal"
-    assert np.all(out.data == torch_out.numpy()), "output not equal" 
-
-def test_as_strided_backward_pass():
-    x = Tensor.random((1,1,5,5), dtype = np.float32)
-    torch_x = torch.tensor(x.data, requires_grad=True)
-    new_shape = (1,1,3,3,1,1,3,3)
-    strides = (100,100,20,4,100,100,20,4)
-    torch_strides = tuple(s//4 for s in strides) #needed because of the different mechanism numpy and torch use to store data
-    out = (x.as_strided(new_shape, strides) ** 2).max() * 10
-    torch_out = (torch_x.as_strided(new_shape, torch_strides) ** 2).max() * 10
-    out.backward()
-    torch_out.backward()
-    print(x.grad)
-    print(torch_x.grad)
-    assert(np.all(abs(x.grad - torch_x.grad.detach().numpy()) < 1e-6))
 
 def test_cat_forward_pass():
     tensors = [Tensor.random((1,1,5+i,5)) for i in range(3)]

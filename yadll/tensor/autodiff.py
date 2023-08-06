@@ -254,26 +254,6 @@ class Tensor():
         new_shape = tuple((self.shape[i] if i < start_dim  else np.prod(self.shape[i:]) for i in range(start_dim+1)))
         return self.reshape((new_shape))
     
-    def as_strided(self, size: tuple, stride: tuple):
-        #memory inneficient because of all the copying, should fix
-        out = Tensor(
-            np.lib.stride_tricks.as_strided(self.data, size, stride, ),
-            requires_grad= True if self.requires_grad else False,
-            parent=(self,),
-            op='stride',
-            name = self.name
-        )
-        def _backward():
-            index_array = np.lib.stride_tricks.as_strided(np.arange(self.data.size), size, stride) #reproduce the striding so we can track which index was used
-            indices = {np.unravel_index(i, self.shape): np.count_nonzero(i == index_array.flatten()) for i in range(self.data.size)}
-            self.grad += np.lib.stride_tricks.as_strided(out.data, self.shape, self.data.strides) * np.lib.stride_tricks.as_strided(out.grad / (out.data + 1e-16), self.shape, self.data.strides)
-            for key,value in indices.items():
-                self.grad[key] *= value
-
-
-        out._backward = _backward
-        return out
-    
     @staticmethod
     def cat(tensors: list[Tensor], dim=0)->Tensor:
         shape = tuple(s if i !=dim else sum([tensor.shape[dim] for tensor in tensors]) for i,s in enumerate(tensors[0].shape))
@@ -298,7 +278,7 @@ class Tensor():
 
     def rolling_window(self,strides:tuple, stride: int=1):
         #not sure if this belongs in the tensor class or elsewhere
-        #should be implemented with our own as_strided but its currently way too slow
+        #should be implemented with unfold
         out = Tensor(
             view_as_windows(np.copy(self.data), strides, stride),
             True,
