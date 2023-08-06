@@ -21,3 +21,4 @@ jobs:
       - name: Test with pytest
         run: |
           pytest test/test_tensor/
+          pytest test/test_module/

@@ -1,4 +1,4 @@
-from yadll.tensor.autodiff import *
+from yadll.autodiff import *
 import numpy as np
 import torch
 
