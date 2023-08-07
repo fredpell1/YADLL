@@ -4,7 +4,7 @@ import numpy as np
 from skimage.util.shape import view_as_windows
 
 def add_dimensions(old_shape, new_shape):
-    # I apologize for anyone reading these one liners
+    #  I apologize for anyone reading these one liners
     
     shape = tuple(d if s!= 1 else s for s,d in zip(old_shape[::-1], new_shape[::-1]) if s == d or s==1 or d==1)[::-1]
     return shape if len(old_shape) == len(new_shape) else (1,) * (abs(len(old_shape) - len(new_shape))) + shape if len(old_shape) > len(new_shape) else shape + (1,) * (abs(len(old_shape) - len(new_shape)))
