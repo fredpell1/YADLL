@@ -1,8 +1,8 @@
 from ..autodiff import *
 from typing import Any, List, Generator
+from abc import abstractmethod, ABCMeta
 
-
-class Module:
+class Module(metaclass=ABCMeta):
     def __init__(self) -> None:
         self.params: List[Tensor] = []
         self.eval_mode = False
@@ -11,6 +11,7 @@ class Module:
         for p in self.params:
             yield p
 
+    @abstractmethod
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         raise NotImplementedError("You should override this method in a subclass")
     
