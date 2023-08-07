@@ -23,6 +23,14 @@ If you wish to also install dependencies for the tests, change the last line to
 ```sh
 python -m pip install -e .['testing']
 ```
+If you wish to use our pre-commit hooks you will first need to install [ruff](https://github.com/astral-sh/ruff).
+```sh
+pip install ruff
+```
+Then you can activate the pre-commit with the following command
+```sh
+pre-commit install
+```
 ## Contributing
 If you wish to contribute to yadll do the following: 
 

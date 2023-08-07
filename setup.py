@@ -10,6 +10,9 @@ setup(
     packages=["yadll", "yadll.nn"],
     install_requires=["numpy", "scikit-image"],
     python_requires=">=3.9",
-    extras_require={"testing": ["torch", "pytest"]},
-    include_package_data=True,
+    extras_require={
+        'testing': ['torch', 'pytest'],
+        "formatting": ["ruff", "pre-commit"]
+    },
+    include_package_data=True
 )
