@@ -20,4 +20,4 @@ jobs:
           pip install torch numpy scikit-image pytest
       - name: Test with pytest
         run: |
-          pytest test/test_tensor/
+          pytest test/
