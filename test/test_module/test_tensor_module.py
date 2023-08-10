@@ -90,7 +90,7 @@ def test_sequential_backward():
 def test_conv2d_output_default_stride():
     with torch.no_grad():
         x = Tensor.random((1, 1, 3,3), True)
-        conv = Conv2d(1,1,(2,2),stride=(1,1),padding = ((1,1), (1,1)))
+        conv = Conv2d(1,1,(2,2),stride=(1,1,1,1),padding = ((1,1), (1,1)))
         torch_x = torch.tensor(x.data, dtype=torch.float64)
         torch_conv = torch.nn.Conv2d(1,1,2,padding=(1,1))
         torch_conv.weight = torch.nn.Parameter(torch.tensor(conv.weight.data))

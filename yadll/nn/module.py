@@ -1,6 +1,7 @@
 from ..autodiff import *
 from typing import Any, List, Generator
 from abc import abstractmethod, ABCMeta
+from .helper import compute_out_dims_for_pooling_ops
 
 class Module(metaclass=ABCMeta):
     def __init__(self) -> None:
@@ -81,95 +82,6 @@ class Conv1d(Module):
         out = (expanded_view.reshape((Lout, padded_x.shape[0], padded_x.shape[1] * self.kernel_size)) @ self.weight.flatten(1).T).permute((1,2,0))
         return out + self.b.reshape((-1,1)) if self.bias else out
 
-class Conv2d(Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: tuple,
-        stride: tuple=(1,1),
-        padding: tuple[tuple]=((0,0), (0,0)),
-        bias=True,
-    ) -> None:
-        super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.bias = bias
-        self.weight = Tensor.random((out_channels, in_channels, kernel_size[0],kernel_size[1]), True, 'weight')
-        self.params.append(self.weight)
-        if bias:
-            self.b = Tensor.random((out_channels,), True, 'bias')
-            self.params.append(self.b)
-
-    def __compute_out_dim(self, Hin, Win) -> tuple[int, int]:
-        assert self.padding[0][0] == self.padding[0][1]
-        assert self.padding[1][0] == self.padding[1][1]
-        Hout = np.floor(
-            (Hin + 2*self.padding[0][0] - self.kernel_size[0])/self.stride[0] + 1
-        )
-        Wout = np.floor(
-            (Win + 2*self.padding[1][0] - self.kernel_size[1])/self.stride[1] + 1
-        )
-        return int(Hout), int(Wout)
-    
-
-    def forward(self, x: Tensor) -> Tensor:
-        assert len(x.shape) == 4, "conv2d currently only supports batched inputs"
-        padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
-        Hout, Wout = self.__compute_out_dim(x.shape[-2], x.shape[-1]) #could optimize and only compute this once
-        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size[0], self.kernel_size[1]), stride = self.stride[0])
-        out = (expanded_view.reshape((Hout,Wout, padded_x.shape[0],padded_x.shape[1] * self.kernel_size[0] * self.kernel_size[1])) @ self.weight.flatten(1).T).permute((2,3,0,1))
-        return out + self.b.reshape((-1,1,1)) if self.bias else out
-
-
-class Conv3d(Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: tuple,
-        stride: tuple=(1,1,1),
-        padding:tuple[tuple]=((0,0), (0,0), (0,0)),
-        bias=True
-        ) -> None:
-        super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.bias = bias
-        self.weight = Tensor.random((out_channels, in_channels, *kernel_size))
-        self.params.append(self.weight)
-        if bias:
-            self.b = Tensor.random((out_channels,))
-            self.params.append(self.b)
-
-    def __compute_out_dim(self, Din, Hin, Win) -> tuple[int,int,int]:
-        pad0 = self.padding[0][0]
-        pad1 = self.padding[1][0]
-        pad2 = self.padding[2][0]
-        Dout = np.floor(
-            (Din + 2*pad0 - self.kernel_size[0])/ self.stride[0] + 1
-        )
-        Hout = np.floor(
-            (Hin + 2*pad1 - self.kernel_size[1])/ self.stride[1] + 1
-        )
-        Wout = np.floor(
-            (Win + 2*pad2 - self.kernel_size[2])/ self.stride[2] + 1
-        )
-        return int(Dout), int(Hout), int(Wout)
-    
-    def forward(self, x: Tensor) -> Tensor:
-        assert len(x.shape) == 5, "conv3d currently only supports batched inputs"
-        padded_x = x.pad(((0,0),(0,0),*self.padding)) if any(pad > 0 for tup in self.padding for pad in tup) else x
-        Dout, Hout, Wout = self.__compute_out_dim(x.shape[-3], x.shape[-2], x.shape[-1])
-        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], *self.kernel_size), self.stride[0])
-        out = (expanded_view.reshape((Dout,Hout,Wout, padded_x.shape[0], padded_x.shape[1] * np.prod(self.kernel_size))) @ self.weight.flatten(1).T).permute((3,4,0,1,2))
-        return out + self.b.reshape((-1,1,1,1)) if self.bias else out
     
 class MaxPool1d(Module):
     def __init__(
