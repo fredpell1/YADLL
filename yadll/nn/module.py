@@ -1,7 +1,6 @@
 from ..autodiff import *
 from typing import Any, List, Generator
 from abc import abstractmethod, ABCMeta
-from .helper import compute_out_dims_for_pooling_ops
 
 class Module(metaclass=ABCMeta):
     def __init__(self) -> None:
@@ -44,45 +43,6 @@ class Linear(Module):
 
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
-
-class Conv1d(Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        kernel_size: int,
-        stride: int = 1,
-        padding : int = 0,
-        bias = True
-    ) -> None:
-        super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
-        self.bias = bias
-        self.weight = Tensor.random((out_channels, in_channels,kernel_size))
-        self.params.append(self.weight)
-        if bias:
-            self.b = Tensor.random((out_channels,))
-            self.params.append(self.b)
-
-    def __compute_out_length(self,Lin):
-        Lout = np.floor(
-            (Lin + 2*self.padding - self.kernel_size) / self.stride + 1
-        )
-        return int(Lout)
-    
-    def forward(self, x: Tensor) -> Tensor:
-        assert len(x.shape) == 3, "conv1d is currently only supporting batched inputs"
-        padded_x = x.pad(((0,0), (0,0), (self.padding,self.padding))) if self.padding > 0 else x
-        Lout = self.__compute_out_length(x.shape[-1])
-        expanded_view = padded_x.rolling_window((padded_x.shape[0], padded_x.shape[1], self.kernel_size), self.stride)
-        out = (expanded_view.reshape((Lout, padded_x.shape[0], padded_x.shape[1] * self.kernel_size)) @ self.weight.flatten(1).T).permute((1,2,0))
-        return out + self.b.reshape((-1,1)) if self.bias else out
-
-    
 class MaxPool1d(Module):
     def __init__(
         self,
