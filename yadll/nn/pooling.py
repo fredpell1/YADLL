@@ -111,7 +111,7 @@ class MaxPool3d(Pool):
             kernel_size = (kernel_size,)
         stride = stride if stride else kernel_size
         if isinstance(stride, int):
-            stride = (stride,)
+            stride = (stride,) * 5
         if len(stride) != 5:
             stride = (1,1) + stride
         super().__init__(kernel_size, stride, padding, -np.inf)
