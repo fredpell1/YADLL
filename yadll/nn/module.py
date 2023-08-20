@@ -14,15 +14,16 @@ class Module(metaclass=ABCMeta):
     @abstractmethod
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         raise NotImplementedError("You should override this method in a subclass")
-    
-    def __call__(self,x:Tensor, *args: Any, **kwds: Any) -> Any:
+
+    def __call__(self, x: Tensor, *args: Any, **kwds: Any) -> Any:
         return self.forward(x)
 
     def train(self):
         self.eval_mode = False
-    
+
     def eval(self):
         self.eval_mode = True
+
 
 class Linear(Module):
     def __init__(self, in_features: int, out_features: int, bias: bool = True) -> None:
@@ -43,6 +44,7 @@ class Linear(Module):
 
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
+
 
 class Sum(Module):
     def __init__(self) -> None:
@@ -71,7 +73,6 @@ class Max(Module):
         return x.max()
 
 
-
 class ReLU(Module):
     def __init__(self) -> None:
         super().__init__()
@@ -80,14 +81,12 @@ class ReLU(Module):
         return x.relu()
 
 
-
 class Exp(Module):
     def __init__(self) -> None:
         super().__init__()
 
     def forward(self, x: Tensor) -> Tensor:
         return x.exp()
-
 
 
 class Log(Module):
@@ -118,4 +117,3 @@ class Sequential(Module):
         for layer in self.params:
             out = layer(out)
         return out
-
