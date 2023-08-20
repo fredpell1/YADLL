@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Optimizer(ABC):
-    def __init__(self, params) -> None:
+    def __init__(self, params):
         self.params = params
 
     @abstractmethod
@@ -16,21 +16,11 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    def __init__(self, params, lr: float, momentum: float = 0) -> None:
+    def __init__(self, params, lr: float, momentum: float):
         super().__init__(params)
         self.lr = lr
-        self.momentum = momentum
-        self.velocities = [np.zeros_like(p) for p in self.params]
 
     def step(self):
-        # Implement step for SGD with momentum
-        for i, p in enumerate(self.params):
+        for p in self.params:
             if p.grad is not None:
-                if self.momentum > 0:
-                    # Update velocity
-                    self.velocities[i] = self.momentum * self.velocities[i] + (1 - self.momentum) * p.grad
-                    # Apply momentum in the update
-                    p.data -= self.lr * self.velocities[i]
-                else:
-                    # Basic SGD update without momentum
-                    p.data -= self.lr * p.grad
+                p.data -= self.lr * p.grad
