@@ -2,6 +2,7 @@ from ..autodiff import *
 from typing import Any, List, Generator
 from abc import abstractmethod, ABCMeta
 
+
 class Module(metaclass=ABCMeta):
     def __init__(self) -> None:
         self.params: List[Tensor] = []

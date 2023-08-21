@@ -11,8 +11,8 @@ setup(
     install_requires=["numpy", "scikit-image"],
     python_requires=">=3.9",
     extras_require={
-        'testing': ['torch', 'pytest'],
-        "formatting": ["ruff", "pre-commit"]
+        "testing": ["torch", "pytest"],
+        "formatting": ["ruff", "pre-commit"],
     },
-    include_package_data=True
+    include_package_data=True,
 )
