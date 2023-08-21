@@ -2,14 +2,14 @@ from ..autodiff import *
 from typing import Any, List, Generator
 from abc import abstractmethod, ABCMeta
 
+
 class Module(metaclass=ABCMeta):
     def __init__(self) -> None:
         self.params: List[Tensor] = []
         self.eval_mode = False
 
     def parameters(self) -> Generator[Tensor, Any, Any]:
-        for p in self.params:
-            yield p
+        return self.params
 
     @abstractmethod
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
