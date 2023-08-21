@@ -9,8 +9,7 @@ class Module(metaclass=ABCMeta):
         self.eval_mode = False
 
     def parameters(self) -> Generator[Tensor, Any, Any]:
-        for p in self.params:
-            yield p
+        return self.params
 
     @abstractmethod
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:

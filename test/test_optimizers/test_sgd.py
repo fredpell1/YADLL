@@ -1,6 +1,6 @@
-from yadll.tensor.autodiff import *
-from yadll.tensor.optimizers import *
-from yadll.tensor.nn import *
+from yadll.autodiff import *
+from yadll.optimizers import *
+from yadll.nn import *
 import numpy
 import torch
 
