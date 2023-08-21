@@ -5,7 +5,6 @@ import numpy
 import torch
 
 
-# TODO Add some unit-tests for stochastic gradient descent.
 def test_sgd_step_no_momentum():
     x = Tensor.random((2, 2))
     torch_x = torch.tensor(x.data)
@@ -25,15 +24,13 @@ def test_sgd_step_no_momentum():
 
 
 def test_sgd_with_momentum():
-    x = Tensor.random((2, 2))
-    torch_x = torch.tensor(x.data)
     model = Linear(2, 1, False)
     torch_model = torch.nn.Linear(2, 1, False)
     torch_model.weight = torch.nn.Parameter(torch.tensor(model.weight.data))
     optim = SGD(model.parameters(), 0.1, 0.9)
     torch_optim = torch.optim.SGD(torch_model.parameters(), 0.1, 0.9)
     assert np.all(model.weight.data == torch_model.weight.detach().numpy()), "weight not equal before step"
-    for _ in range(3):
+    for i in range(3):
         x = Tensor.random((2, 2))
         torch_x = torch.tensor(x.data)
         out = model(x).sum()
@@ -42,4 +39,5 @@ def test_sgd_with_momentum():
         torch_out.backward()
         optim.step()
         torch_optim.step()
+
     assert np.all(model.weight.data == torch_model.weight.detach().numpy()), "weight not equal after step"

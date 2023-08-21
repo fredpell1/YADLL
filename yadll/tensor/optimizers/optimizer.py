@@ -16,11 +16,22 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    def __init__(self, params, lr: float, momentum: float):
+    def __init__(self, params, lr: float, momentum: float = 0):
         super().__init__(params)
         self.lr = lr
+        self.momentum = momentum
+        self.velocities = {}
 
     def step(self):
         for p in self.params:
             if p.grad is not None:
-                p.data -= self.lr * p.grad
+                if self.momentum == 0:
+                    p.data -= self.lr * p.grad
+                else:
+                    if p not in self.velocities:
+                        self.velocities[p] = np.zeros_like(p.data)
+                    velocity = self.momentum * self.velocities[p] + self.lr * p.grad
+                    # Update the velocity
+                    self.velocities[p] = velocity
+                    p.data += velocity
+
