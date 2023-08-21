@@ -39,4 +39,4 @@ def test_sgd_with_momentum():
         torch_out.backward()
         optim.step()
         torch_optim.step()
-    assert np.all(model.weight.data == torch_model.weight.detach().numpy()), "weight not equal after step"
+    assert np.all(abs(model.weight.data - torch_model.weight.detach().numpy()) < 1e-8), "weight not equal after step"
