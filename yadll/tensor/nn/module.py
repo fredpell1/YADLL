@@ -10,9 +10,8 @@ class Module:
         self.params: List[Tensor] = []
         self.eval_mode = False
 
-    def parameters(self) -> Generator[Tensor, Any, Any]:
-        for p in self.params:
-            yield p
+    def parameters(self) -> List[Tensor]:
+        return self.params
 
     def forward(self, x: Tensor, *args, **kwargs) -> Tensor:
         raise NotImplementedError("You should override this method in a subclass")

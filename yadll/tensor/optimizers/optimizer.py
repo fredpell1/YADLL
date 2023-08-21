@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-
+from ..autodiff import Tensor
 
 class Optimizer(ABC):
     def __init__(self, params):
@@ -16,10 +16,11 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    def __init__(self, params, lr: float, momentum: float = 0):
+    def __init__(self, params, lr: float, momentum: float = 0, dampening: float = 0):
         super().__init__(params)
         self.lr = lr
         self.momentum = momentum
+        self.dampening = dampening
         self.velocities = {}
 
     def step(self):
@@ -29,9 +30,10 @@ class SGD(Optimizer):
                     p.data -= self.lr * p.grad
                 else:
                     if p not in self.velocities:
-                        self.velocities[p] = np.zeros_like(p.data)
-                    velocity = self.momentum * self.velocities[p] + self.lr * p.grad
+                        self.velocities[p] = Tensor.zeros(p.shape)
+                    velocity = (self.momentum * self.velocities[p]).data + (1 - self.dampening) * p.grad
                     # Update the velocity
                     self.velocities[p] = velocity
-                    p.data += velocity
+                    p.data -= self.lr *velocity
+        
 
